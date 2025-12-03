@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 # Ignore PyCharm / IntelliJ project files
 backend/.idea/
 Source code/backend/.idea/
@@ -14,7 +13,5 @@ backend/controller/__pycache__/
 
 # Ignore all Python __pycache__ folders anywhere
 **/__pycache__/
-=======
 **/__pycache__/
 .idea/
->>>>>>> minh
