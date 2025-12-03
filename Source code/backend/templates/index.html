@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Smart Light Control</title>
+    <!-- Tải Tailwind CSS để tạo giao diện hiện đại và responsive -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+      /* Định nghĩa font Inter */
+      body {
+        font-family: "Inter", sans-serif;
+      }
+      /* Custom style cho thanh trượt */
+      input[type="range"]::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        appearance: none;
+        width: 16px;
+        height: 16px;
+        border-radius: 50%;
+        background: #4f46e5;
+        cursor: pointer;
+        box-shadow: 0 0 5px rgba(0, 0, 0, 0.2);
+      }
+      input[type="range"]::-moz-range-thumb {
+        width: 16px;
+        height: 16px;
+        border-radius: 50%;
+        background: #4f46e5;
+        cursor: pointer;
+        box-shadow: 0 0 5px rgba(0, 0, 0, 0.2);
+      }
+    </style>
+  </head>
+  <body class="bg-gray-100 min-h-screen flex items-start justify-center p-4">
+    <div
+      class="bg-white p-6 sm:p-8 rounded-xl shadow-2xl w-full max-w-md mt-10"
+    >
+      <h1 class="text-3xl font-extrabold text-center text-indigo-700 mb-6">
+        🏠 Smart Light Control
+      </h1>
+
+      <div id="controls" class="space-y-6">
+        <!-- HIỂN THỊ TRẠNG THÁI -->
+        <div
+          id="status-display"
+          class="text-center p-4 rounded-lg shadow-inner bg-indigo-50"
+        >
+          <p class="text-lg font-semibold text-gray-600">
+            Trạng thái hiện tại:
+          </p>
+          <p id="current-mode" class="text-2xl font-bold text-indigo-600 mt-1">
+            CHẾ ĐỘ: MANUAL
+          </p>
+          <p id="current-state" class="text-xl font-medium text-gray-800">
+            ĐÈN: TẮT
+          </p>
+        </div>
+
+        <!-- PHẦN ĐIỀU CHỈNH ĐỘ SÁNG (MỚI) -->
+        <div class="border-t pt-6">
+          <h3
+            class="text-xl font-semibold text-gray-700 mb-4 flex justify-between items-center"
+          >
+            Điều chỉnh Độ sáng
+            <span id="brightness-value" class="text-indigo-600 font-bold"
+              >100%</span
+            >
+          </h3>
+          <input
+            type="range"
+            min="0"
+            max="100"
+            value="100"
+            id="brightness-slider"
+            class="w-full h-2 bg-gray-300 rounded-lg appearance-none cursor-pointer"
+            oninput="document.getElementById('brightness-value').innerText = this.value + '%';"
+            onmouseup="sendBrightnessCommand(this.value)"
+            ontouchend="sendBrightnessCommand(this.value)"
+          />
+          <p class="text-sm text-gray-500 mt-2">
+            Độ sáng chỉ có tác dụng ở chế độ Manual.
+          </p>
+        </div>
+
+        <!-- NÚT BẬT/TẮT -->
+        <div
+          class="flex flex-col sm:flex-row justify-center space-y-3 sm:space-y-0 sm:space-x-4 border-t pt-6"
+        >
+          <!-- Nút BẬT ĐÈN -->
+          <button
+            id="btn-on"
+            class="w-full sm:w-1/2 p-4 rounded-xl text-white font-medium bg-green-500 hover:bg-green-600 shadow-md transition duration-150 ease-in-out transform hover:scale-[1.02] active:scale-[0.98]"
+            onclick="sendCommand('on')"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              class="h-6 w-6 inline-block mr-2"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"
+              />
+            </svg>
+            BẬT ĐÈN
+          </button>
+
+          <!-- Nút TẮT ĐÈN -->
+          <button
+            id="btn-off"
+            class="w-full sm:w-1/2 p-4 rounded-xl text-white font-medium bg-red-500 hover:bg-red-600 shadow-md transition duration-150 ease-in-out transform hover:scale-[1.02] active:scale-[0.98]"
+            onclick="sendCommand('off')"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              class="h-6 w-6 inline-block mr-2"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M13 10V3L4 14h7v7l9-11h-7z"
+              />
+            </svg>
+            TẮT ĐÈN
+          </button>
+        </div>
+
+        <div class="pt-2">
+          <!-- Nút Chuyển Mode -->
+          <button
+            id="btn-mode"
+            class="w-full p-3 rounded-xl bg-indigo-600 text-white font-semibold shadow-lg hover:bg-indigo-700 transition duration-150 ease-in-out transform hover:scale-[1.01] active:scale-[0.99]"
+            onclick="toggleMode()"
+          >
+            Chuyển sang AUTO MODE
+          </button>
+        </div>
+
+        <!-- Khung thông báo tạm thời sau khi gửi lệnh -->
+        <div
+          id="message-box"
+          class="mt-4 p-3 text-sm rounded-lg hidden text-center"
+        ></div>
+      </div>
+    </div>
+
+    <script>
+      // Cấu hình để khớp với Payload mô tả trong yêu cầu ban đầu
+      const USER_ID = "light1";
+      const DEVICE_ID = "light1";
+      const API_ENDPOINT = "/api/device/command";
+
+      // Trạng thái hiện tại của UI (dùng để chuyển đổi nút mode)
+      let currentUIMode = "manual";
+      let currentUIState = "off";
+
+      // =======================================================
+      // HÀM HIỂN THỊ & CẬP NHẬT UI
+      // =======================================================
+
+      function updateUI(mode, state) {
+        currentUIMode = mode;
+        currentUIState = state;
+
+        const modeDisplay = document.getElementById("current-mode");
+        const stateDisplay = document.getElementById("current-state");
+        const modeBtn = document.getElementById("btn-mode");
+
+        // 1. Cập nhật trạng thái và mode
+        modeDisplay.innerText = `CHẾ ĐỘ: ${mode.toUpperCase()}`;
+        stateDisplay.innerText = `ĐÈN: ${state.toUpperCase()}`;
+
+        // 2. Cập nhật nút Mode
+        if (mode === "manual") {
+          modeDisplay.classList.remove("text-green-600");
+          modeDisplay.classList.add("text-indigo-600");
+          modeBtn.innerText = "Chuyển sang AUTO MODE (PIR)";
+          modeBtn.classList.remove("bg-green-600");
+          modeBtn.classList.add("bg-indigo-600");
+        } else {
+          modeDisplay.classList.remove("text-indigo-600");
+          modeDisplay.classList.add("text-green-600");
+          modeBtn.innerText = "Chuyển sang MANUAL MODE";
+          modeBtn.classList.remove("bg-indigo-600");
+          modeBtn.classList.add("bg-green-600");
+        }
+
+        // 3. Cập nhật màu nút Bật/Tắt (optional visual feedback)
+        const onBtn = document.getElementById("btn-on");
+        const offBtn = document.getElementById("btn-off");
+
+        if (state === "on") {
+          stateDisplay.classList.add("text-yellow-600");
+          stateDisplay.classList.remove("text-gray-800");
+        } else {
+          stateDisplay.classList.add("text-gray-800");
+          stateDisplay.classList.remove("text-yellow-600");
+        }
+      }
+
+      // Hàm hiển thị thông báo tạm thời
+      function showMessage(text, isError = false) {
+        const msgBox = document.getElementById("message-box");
+        msgBox.innerText = text;
+        msgBox.classList.remove(
+          "hidden",
+          "bg-blue-100",
+          "text-blue-800",
+          "bg-red-100",
+          "text-red-800",
+          "bg-green-100",
+          "text-green-800"
+        );
+
+        if (isError) {
+          msgBox.classList.add("bg-red-100", "text-red-800");
+        } else if (text.includes("thành công")) {
+          msgBox.classList.add("bg-green-100", "text-green-800");
+        } else {
+          msgBox.classList.add("bg-blue-100", "text-blue-800");
+        }
+
+        setTimeout(() => {
+          msgBox.classList.add("hidden");
+        }, 3000); // Ẩn sau 3 giây
+      }
+
+      // =======================================================
+      // HÀM GỬI LỆNH ĐIỀU KHIỂN
+      // =======================================================
+
+      /**
+       * Gửi lệnh cơ bản Bật/Tắt đến Backend API
+       * @param {string} action - 'on' hoặc 'off'
+       */
+      function sendCommand(action) {
+        let payload = {
+          user_id: USER_ID,
+          device_id: DEVICE_ID,
+          state: action,
+          // Khi nhấn Bật/Tắt, luôn chuyển về manual mode
+          mode: "manual",
+          brightness: 100, // Mặc định brightness 100 khi bật/tắt thủ công
+        };
+
+        // Cập nhật giá trị thanh trượt về 100 nếu bật/tắt thủ công
+        document.getElementById("brightness-slider").value = 100;
+        document.getElementById("brightness-value").innerText = "100%";
+
+        executeFetch(payload, `Đang gửi lệnh '${action.toUpperCase()}'...`);
+      }
+
+      /**
+       * Gửi lệnh Điều chỉnh độ sáng (MỚI)
+       * @param {number} brightness - Giá trị độ sáng (0-100)
+       */
+      function sendBrightnessCommand(brightness) {
+        // Lệnh điều chỉnh độ sáng chỉ có ý nghĩa khi ở MANUAL MODE VÀ BẬT ĐÈN
+        let payload = {
+          user_id: USER_ID,
+          device_id: DEVICE_ID,
+          state: "on", // Phải luôn bật đèn để điều chỉnh độ sáng
+          mode: "manual",
+          brightness: parseInt(brightness),
+        };
+
+        // Chỉ gửi lệnh nếu ở manual mode
+        if (currentUIMode === "auto") {
+          showMessage(
+            "⚠️ Phải chuyển sang MANUAL MODE để điều chỉnh độ sáng!",
+            true
+          );
+          return;
+        }
+
+        executeFetch(payload, `Đang điều chỉnh độ sáng tới ${brightness}%...`);
+      }
+
+      /**
+       * Chuyển đổi giữa chế độ Auto và Manual
+       */
+      function toggleMode() {
+        const newMode = currentUIMode === "manual" ? "auto" : "manual";
+
+        let payload = {
+          user_id: USER_ID,
+          device_id: DEVICE_ID,
+          state: "off", // Đặt trạng thái tắt khi chuyển mode (hoặc giữ nguyên trạng thái cũ)
+          mode: newMode,
+        };
+
+        executeFetch(
+          payload,
+          `Đang chuyển sang chế độ ${newMode.toUpperCase()}...`
+        );
+      }
+
+      // Hàm thực thi Fetch API chung
+      function executeFetch(payload, loadingMessage) {
+        showMessage(loadingMessage);
+
+        fetch(API_ENDPOINT, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        })
+          .then((res) => {
+            if (res.ok) {
+              showMessage(`Lệnh đã được gửi thành công!`);
+              // Giả định cập nhật UI ngay lập tức
+              if (payload.mode) updateUI(payload.mode, payload.state);
+            } else {
+              throw new Error(`Lỗi HTTP: ${res.status}`);
+            }
+          })
+          .catch((error) => {
+            console.error("Lỗi khi gửi lệnh:", error);
+            showMessage(`Gửi lệnh thất bại: ${error.message}`, true);
+          });
+      }
+
+      // Khởi tạo trạng thái UI ban đầu
+      window.onload = function () {
+        updateUI(currentUIMode, currentUIState);
+      };
+    </script>
+  </body>
+</html>
