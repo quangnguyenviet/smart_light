@@ -60,14 +60,16 @@ def on_message(client, userdata, msg):
     try:
         payload = msg.payload.decode()
         print(f"[MQTT] Topic={msg.topic} Payload={payload}")
-        try:
-            data = json.loads(payload)
-            update_device_state(data)
-            socketio.emit("device_state_update", data)  # realtime frontend
-        except json.JSONDecodeError:
-            print("❌ Invalid JSON")
+        data = json.loads(payload)
+
+        # Update DB
+        update_device_state(data)
+
+        # Emit realtime cho frontend
+        socketio.emit("device_state_update", data)  # đổi tên event cho trùng frontend
     except Exception as e:
         print(f"❌ MQTT Callback Error: {e}")
+
 
 
 # ====================
@@ -102,63 +104,29 @@ def process_device_command(mqtt_client, data):
 
     return {"message": "Command sent", "mqtt_topic": topic, "mqtt_payload": payload}, 200
 
-    """
-    Xử lý command từ API, bao gồm state, mode và brightness.
-    """
-    user_id = data.get("user_id")
-    device_id = data.get("device_id")
-    state = data.get("state")
-    mode = data.get("mode")
-    brightness = data.get("brightness")  # có thể None
-
-    if not user_id or not device_id:
-        return {"error": "Missing user_id or device_id"}, 400
-
-    topic = f"home/{user_id}/{device_id}/cmd"
-    payload = {
-        "command": "set",
-        "state": state,
-        "mode": mode,
-        "timestamp": datetime.utcnow().isoformat() + "Z"
-    }
-
-    if brightness is not None:
-        payload["brightness"] = brightness
-
-    mqtt_client.publish(topic, json.dumps(payload))
-    print("==> MQTT Published:", topic, payload)
-
-    return {"message": "Command sent", "mqtt_topic": topic, "mqtt_payload": payload}, 200
 
 
 # ====================
 # WEBSOCKET HANDLER CHO BRIGHTNESS
 # ====================
-@socketio.on("command")
+@socketio.on("brightness_change")  # đồng bộ với frontend
 def handle_brightness_command(data):
-    """
-    Chỉ nhận brightness từ frontend qua WebSocket và gửi đến ESP32
-    """
     device_id = data.get("device_id")
     user_id = data.get("user_id")
     brightness = data.get("brightness")
-    state = data.get("state", "on")  # mặc định bật đèn nếu chỉnh sáng
-    mode = data.get("mode", "manual")
 
     if device_id and user_id and brightness is not None:
         topic = f"home/{user_id}/{device_id}/cmd"
         payload = {
             "command": "set",
-            "state": state,
-            "mode": mode,
             "brightness": brightness,
             "timestamp": datetime.utcnow().isoformat() + "Z"
         }
         mqtt_client.publish(topic, json.dumps(payload))
-        print(f"🌟 WebSocket -> MQTT Published: {topic} {payload}")
-        # Cập nhật DB
-        update_device_state({"device_id": device_id, "state": state, "mode": mode, "brightness": brightness})
-        # Gửi realtime về tất cả frontend
-        socketio.emit("device_state_update", {"device_id": device_id, "state": state, "mode": mode, "brightness": brightness})
+        print(f"🌟 WS -> MQTT Published: {topic} {payload}")
+
+        # **Không emit UI update ở đây nữa**
+        # UI sẽ update khi ESP32 publish trạng thái -> on_message -> emit device_state_update
     else:
-        print("⚠ Invalid WebSocket brightness payload:", data)
+        print("⚠ Invalid WS brightness payload:", data)
+

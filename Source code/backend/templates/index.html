@@ -1,13 +1,13 @@
 <!DOCTYPE html>
-<html>
+<html lang="vi">
   <head>
+    <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Smart Light Control</title>
 
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-
-    <!-- Socket.IO để nhận realtime từ backend -->
+    <!-- Socket.IO -->
     <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
 
     <style>
@@ -56,7 +56,6 @@
             >100%</span
           >
         </h3>
-
         <input
           type="range"
           min="0"
@@ -64,10 +63,8 @@
           value="100"
           id="brightness-slider"
           class="w-full h-2 bg-gray-300 rounded-lg"
-          oninput="document.getElementById('brightness-value').innerText = this.value + '%';"
-          onmouseup="sendBrightnessCommand(this.value)"
+          oninput="handleBrightnessInput(this.value)"
         />
-
         <p class="text-sm text-gray-500 mt-2">Chỉ hoạt động ở chế độ Manual.</p>
       </div>
 
@@ -78,15 +75,14 @@
         <button
           id="btn-on"
           class="w-full sm:w-1/2 p-4 rounded-xl text-white font-medium bg-green-500 hover:bg-green-600"
-          onclick="sendCommand('on')"
+          onclick="sendCommandAPI('on')"
         >
           BẬT ĐÈN
         </button>
-
         <button
           id="btn-off"
           class="w-full sm:w-1/2 p-4 rounded-xl text-white font-medium bg-red-500 hover:bg-red-600"
-          onclick="sendCommand('off')"
+          onclick="sendCommandAPI('off')"
         >
           TẮT ĐÈN
         </button>
@@ -116,17 +112,31 @@
       let currentUIMode = "manual";
       let currentUIState = "off";
 
-      // =======================================================
-      // HELPER FUNCTION
-      // =======================================================
-      function showMessage(text) {
-        const box = document.getElementById("message-box");
-        box.innerText = text;
-        box.classList.remove("hidden");
-        box.classList.add("bg-indigo-100", "text-indigo-800");
-        setTimeout(() => box.classList.add("hidden"), 2000);
+      // ====================
+      // WebSocket (brightness)
+      // ====================
+      const socket = io();
+      socket.on("connect", () => console.log("WebSocket connected!"));
+
+      let brightnessTimeout;
+      function handleBrightnessInput(value) {
+        document.getElementById("brightness-value").innerText = value + "%";
+
+        if (currentUIMode !== "manual") return;
+
+        clearTimeout(brightnessTimeout);
+        brightnessTimeout = setTimeout(() => {
+          socket.emit("brightness_change", {
+            user_id: USER_ID,
+            device_id: DEVICE_ID,
+            brightness: parseInt(value),
+          });
+        }, 100); // debounce 100ms
       }
 
+      // ====================
+      // API (ON/OFF & mode)
+      // ====================
       function executeFetch(payload) {
         fetch(API_ENDPOINT, {
           method: "POST",
@@ -138,99 +148,7 @@
           .catch(() => showMessage("⚠ Lỗi gửi lệnh!"));
       }
 
-      // =======================================================
-      // REALTIME WEBSOCKET
-      // =======================================================
-      const socket = io(); // kết nối backend WebSocket
-
-      socket.on("connect", () => {
-        console.log("🔌 WebSocket connected!");
-      });
-
-      socket.on("device_state_update", (data) => {
-        console.log("📡 Realtime Update:", data);
-        const mode = data.mode || currentUIMode;
-        const state = data.state || currentUIState;
-        const brightness =
-          data.brightness !== undefined ? data.brightness : 100;
-        updateUI(mode, state, brightness);
-      });
-
-      // =======================================================
-      // UPDATE UI
-      // =======================================================
-      function updateUI(mode, state, brightness = 100) {
-        currentUIMode = mode;
-        currentUIState = state;
-
-        const modeDisplay = document.getElementById("current-mode");
-        const stateDisplay = document.getElementById("current-state");
-        const statusBox = document.getElementById("status-display");
-        const btnMode = document.getElementById("btn-mode");
-        const brightnessSlider = document.getElementById("brightness-slider");
-        const brightnessValue = document.getElementById("brightness-value");
-        const btnOn = document.getElementById("btn-on");
-        const btnOff = document.getElementById("btn-off");
-
-        modeDisplay.innerText = `CHẾ ĐỘ: ${mode.toUpperCase()}`;
-        stateDisplay.innerText = `ĐÈN: ${state.toUpperCase()}`;
-
-        if (state === "on") {
-          statusBox.classList.remove("bg-indigo-50");
-          statusBox.classList.add("bg-yellow-100");
-          stateDisplay.classList.remove("text-gray-800");
-          stateDisplay.classList.add("text-yellow-700");
-        } else {
-          statusBox.classList.remove("bg-yellow-100");
-          statusBox.classList.add("bg-indigo-50");
-          stateDisplay.classList.remove("text-yellow-700");
-          stateDisplay.classList.add("text-gray-800");
-        }
-
-        if (mode === "manual") {
-          btnMode.innerText = "Chuyển sang AUTO MODE";
-          btnMode.classList.remove("bg-green-600");
-          btnMode.classList.add("bg-indigo-600");
-        } else {
-          btnMode.innerText = "Chuyển sang MANUAL MODE";
-          btnMode.classList.remove("bg-indigo-600");
-          btnMode.classList.add("bg-green-600");
-        }
-
-        brightnessSlider.value = brightness;
-        brightnessValue.innerText = brightness + "%";
-
-        btnOn.classList.remove("ring-4", "ring-green-300");
-        btnOff.classList.remove("ring-4", "ring-red-300");
-        if (state === "on") {
-          btnOn.classList.add("ring-4", "ring-green-300");
-        } else {
-          btnOff.classList.add("ring-4", "ring-red-300");
-        }
-
-        const isManual = mode === "manual";
-        if (isManual) {
-          brightnessSlider.disabled = false;
-          btnOn.disabled = false;
-          btnOff.disabled = false;
-          [brightnessSlider, btnOn, btnOff].forEach((el) => {
-            el.classList.remove("opacity-50", "cursor-not-allowed");
-          });
-        } else {
-          brightnessSlider.disabled = true;
-          btnOn.disabled = true;
-          btnOff.disabled = true;
-          [brightnessSlider, btnOn, btnOff].forEach((el) => {
-            el.classList.add("opacity-50", "cursor-not-allowed");
-          });
-        }
-      }
-
-      // =======================================================
-      // SEND COMMAND FUNCTIONS
-      // =======================================================
-      // Giữ nguyên API cho bật/tắt
-      function sendCommand(action) {
+      function sendCommandAPI(action) {
         const payload = {
           user_id: USER_ID,
           device_id: DEVICE_ID,
@@ -238,19 +156,6 @@
           mode: "manual",
         };
         executeFetch(payload);
-      }
-
-      // Chỉ brightness dùng WebSocket
-      function sendBrightnessCommand(brightness) {
-        const payload = {
-          user_id: USER_ID,
-          device_id: DEVICE_ID,
-          state: "on", // tự bật đèn khi chỉnh sáng
-          mode: "manual",
-          brightness: parseInt(brightness),
-        };
-        socket.emit("command", payload);
-        showMessage("Độ sáng đã gửi!");
       }
 
       function toggleMode() {
@@ -264,6 +169,92 @@
         executeFetch(payload);
       }
 
+      // ====================
+      // UI & Realtime Updates from backend
+      // ====================
+      socket.on("device_state_update", (data) => {
+        if (!data || data.device_id !== DEVICE_ID) return;
+        const mode = data.mode || currentUIMode;
+        const state = data.state || currentUIState;
+        const brightness =
+          data.brightness !== undefined ? data.brightness : 100;
+        updateUI(mode, state, brightness);
+      });
+
+      function updateUI(mode, state, brightness = 100) {
+        currentUIMode = mode;
+        currentUIState = state;
+
+        const modeDisplay = document.getElementById("current-mode");
+        const stateDisplay = document.getElementById("current-state");
+        const statusBox = document.getElementById("status-display");
+        const btnMode = document.getElementById("btn-mode");
+        const brightnessSlider = document.getElementById("brightness-slider");
+        const brightnessValue = document.getElementById("brightness-value");
+        const btnOn = document.getElementById("btn-on");
+        const btnOff = document.getElementById("btn-off");
+
+        // Mode / State text
+        modeDisplay.innerText = `CHẾ ĐỘ: ${mode.toUpperCase()}`;
+        stateDisplay.innerText = `ĐÈN: ${state.toUpperCase()}`;
+
+        // Status box color
+        if (state === "on") {
+          statusBox.classList.remove("bg-indigo-50");
+          statusBox.classList.add("bg-yellow-100");
+          stateDisplay.classList.remove("text-gray-800");
+          stateDisplay.classList.add("text-yellow-700");
+        } else {
+          statusBox.classList.remove("bg-yellow-100");
+          statusBox.classList.add("bg-indigo-50");
+          stateDisplay.classList.remove("text-yellow-700");
+          stateDisplay.classList.add("text-gray-800");
+        }
+
+        // Mode button
+        if (mode === "manual") {
+          btnMode.innerText = "Chuyển sang AUTO MODE";
+          btnMode.classList.remove("bg-green-600");
+          btnMode.classList.add("bg-indigo-600");
+        } else {
+          btnMode.innerText = "Chuyển sang MANUAL MODE";
+          btnMode.classList.remove("bg-indigo-600");
+          btnMode.classList.add("bg-green-600");
+        }
+
+        // Brightness slider
+        brightnessSlider.value = brightness;
+        brightnessValue.innerText = brightness + "%";
+
+        // ON/OFF buttons highlight
+        btnOn.classList.remove("ring-4", "ring-green-300");
+        btnOff.classList.remove("ring-4", "ring-red-300");
+        if (state === "on") btnOn.classList.add("ring-4", "ring-green-300");
+        else btnOff.classList.add("ring-4", "ring-red-300");
+
+        // Disable controls if not manual
+        const isManual = mode === "manual";
+        [brightnessSlider, btnOn, btnOff].forEach((el) => {
+          el.disabled = !isManual;
+          if (!isManual) el.classList.add("opacity-50", "cursor-not-allowed");
+          else el.classList.remove("opacity-50", "cursor-not-allowed");
+        });
+      }
+
+      // ====================
+      // Message Box
+      // ====================
+      function showMessage(text) {
+        const box = document.getElementById("message-box");
+        box.innerText = text;
+        box.classList.remove("hidden");
+        box.classList.add("bg-indigo-100", "text-indigo-800");
+        setTimeout(() => box.classList.add("hidden"), 2000);
+      }
+
+      // ====================
+      // Init
+      // ====================
       window.onload = () => updateUI("manual", "off", 100);
     </script>
   </body>
