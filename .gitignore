@@ -1,3 +1,15 @@
+# Ignore PyCharm / IntelliJ project files
+backend/.idea/
+Source code/backend/.idea/
+Source code/backend/*/.idea/
 
-*.docx
-~*.tmp
+# Ignore Python cache folders
+**/__pycache__/
+Source code/backend/__pycache__/
+backend/config/__pycache__/
+backend/controller/__pycache__/
+# Ignore all .idea folders anywhere
+**/.idea/
+
+# Ignore all Python __pycache__ folders anywhere
+**/__pycache__/
