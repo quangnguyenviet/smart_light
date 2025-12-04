@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Smart Light Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <style>
+      body {
+        font-family: "Inter", sans-serif;
+      }
+    </style>
+  </head>
+
+  <body class="bg-gray-100 min-h-screen p-4">
+    <div class="max-w-6xl mx-auto">
+      <!-- Header -->
+      <div class="mb-8">
+        <h1 class="text-4xl font-extrabold text-indigo-700 mb-2">
+          🏠 Smart Light Dashboard
+        </h1>
+        <p class="text-gray-600">Quản lý tất cả các thiết bị điều khiển đèn</p>
+      </div>
+
+      <!-- Devices Grid -->
+      <div id="devices-container" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        <!-- Loading skeleton -->
+        <div class="bg-white p-6 rounded-xl shadow-lg animate-pulse">
+          <div class="h-6 bg-gray-300 rounded mb-4"></div>
+          <div class="h-4 bg-gray-300 rounded mb-3"></div>
+          <div class="h-4 bg-gray-300 rounded w-2/3"></div>
+        </div>
+      </div>
+
+      <!-- Empty State -->
+      <div id="empty-state" class="hidden text-center py-12">
+        <p class="text-gray-500 text-lg">Không có thiết bị nào</p>
+      </div>
+    </div>
+
+    <script>
+      const socket = io();
+
+      // Lấy danh sách devices
+      async function loadDevices() {
+        try {
+          const response = await fetch("/api/devices");
+          const devices = await response.json();
+
+          if (devices.length === 0) {
+            document.getElementById("empty-state").classList.remove("hidden");
+            document.getElementById("devices-container").innerHTML = "";
+            return;
+          }
+
+          renderDevices(devices);
+        } catch (error) {
+          console.error("Error loading devices:", error);
+        }
+      }
+
+      // Render devices cards
+      function renderDevices(devices) {
+        const container = document.getElementById("devices-container");
+        container.innerHTML = "";
+
+        devices.forEach((device) => {
+          const statusColor = device.is_on ? "bg-yellow-100" : "bg-indigo-50";
+          const statusText = device.is_on ? "🟢 BẬT" : "🔴 TẮT";
+          const statusClass = device.is_on ? "text-yellow-700" : "text-gray-800";
+
+          const card = document.createElement("div");
+          card.className = `${statusColor} p-6 rounded-xl shadow-lg cursor-pointer transition transform hover:scale-105 hover:shadow-xl`;
+          card.onclick = () => goToControl(device.device_id);
+
+          card.innerHTML = `
+            <h2 class="text-2xl font-bold text-indigo-700 mb-2">${device.device_name}</h2>
+            <p class="text-sm text-gray-600 mb-4">ID: ${device.device_id}</p>
+            
+            <div class="flex justify-between items-center mb-4">
+              <span class="text-lg font-semibold ${statusClass}">${statusText}</span>
+              <span class="text-xs bg-indigo-600 text-white px-3 py-1 rounded-full">${device.mode.toUpperCase()}</span>
+            </div>
+
+            <div class="mb-3">
+              <p class="text-sm text-gray-600">Độ sáng: <span class="font-semibold">${device.brightness || 100}%</span></p>
+              <div class="w-full bg-gray-300 rounded-full h-2 mt-1">
+                <div class="bg-indigo-600 h-2 rounded-full" style="width: ${device.brightness || 100}%"></div>
+              </div>
+            </div>
+
+            <button class="w-full mt-4 p-2 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700 transition">
+              Điều khiển
+            </button>
+          `;
+
+          container.appendChild(card);
+        });
+      }
+
+      // Điều hướng tới trang control
+      function goToControl(deviceId) {
+        window.location.href = `/control/${deviceId}`;
+      }
+
+      // Real-time update từ WebSocket
+      socket.on("device_state_update", (data) => {
+        loadDevices(); // Reload danh sách khi có update
+      });
+
+      // Load devices khi trang mở
+      window.onload = () => loadDevices();
+
+      // Refresh danh sách mỗi 5 giây
+      setInterval(loadDevices, 5000);
+    </script>
+  </body>
+</html>

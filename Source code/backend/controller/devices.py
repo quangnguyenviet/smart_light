@@ -29,6 +29,7 @@ def update_device_state(data):
     try:
         conn = get_db_connection()
         if conn is None:
+            print(f"❌ Cannot connect to DB for device: {device_name}")
             return
 
         cursor = conn.cursor()
@@ -37,13 +38,14 @@ def update_device_state(data):
             SET is_on = %s, mode = %s, brightness = %s, last_online = %s
             WHERE device_name = %s;
         """
+        print(f"📝 Executing query: UPDATE devices SET is_on={is_on}, mode={mode}, brightness={brightness}, last_online={now} WHERE device_name={device_name}")
         cursor.execute(query, (is_on, mode, brightness, now, device_name))
         affected = cursor.rowcount
         if affected > 0:
             conn.commit()
-            print(f"✅ Updated {device_name}")
+            print(f"✅ Updated {device_name}: is_on={is_on}, mode={mode}, brightness={brightness}")
         else:
-            print(f"⚠️ Device not found: {device_name}")
+            print(f"⚠️ Device not found in DB: {device_name}")
     except Exception as e:
         print(f"❌ DB Error: {e}")
         if conn:
@@ -59,16 +61,20 @@ def update_device_state(data):
 def on_message(client, userdata, msg):
     try:
         payload = msg.payload.decode()
-        print(f"[MQTT] Topic={msg.topic} Payload={payload}")
+        print(f"\n[MQTT RECEIVED] Topic={msg.topic}")
+        print(f"[MQTT PAYLOAD] {payload}")
         data = json.loads(payload)
 
         # Update DB
+        print(f"[ACTION] Updating database with: {data}")
         update_device_state(data)
 
-        # Emit realtime cho frontend
-        socketio.emit("device_state_update", data)  # đổi tên event cho trùng frontend
+        # Emit realtime cho frontend (broadcast tới tất cả clients)
+        print(f"[ACTION] Broadcasting to all connected clients")
+        socketio.emit("device_state_update", data, broadcast=True)
+        print(f"✅ MQTT message processed successfully\n")
     except Exception as e:
-        print(f"❌ MQTT Callback Error: {e}")
+        print(f"❌ MQTT Callback Error: {e}\n")
 
 
 
@@ -130,3 +136,38 @@ def handle_brightness_command(data):
     else:
         print("⚠ Invalid WS brightness payload:", data)
 
+# ====================
+# Lấy ds thiết bị từ DB
+# ====================
+
+def get_all_devices():
+    """Lấy danh sách tất cả devices từ database"""
+    conn = None
+    try:
+        conn = get_db_connection()
+        if conn is None:
+            return []
+
+        cursor = conn.cursor()
+        query = "SELECT device_id, device_name, is_on, mode, brightness FROM devices;"
+        cursor.execute(query)
+        devices = cursor.fetchall()
+        
+        result = []
+        for device in devices:
+            result.append({
+                "device_id": device[0],
+                "device_name": device[1],
+                "is_on": device[2],
+                "mode": device[3],
+                "brightness": device[4]
+            })
+        return result
+    except Exception as e:
+        print(f"❌ DB Error: {e}")
+        return []
+    finally:
+        if conn:
+            conn.close()
+
+# ...existing code...

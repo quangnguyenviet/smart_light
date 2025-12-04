@@ -28,9 +28,15 @@
     <div
       class="bg-white p-6 sm:p-8 rounded-xl shadow-2xl w-full max-w-md mt-10"
     >
-      <h1 class="text-3xl font-extrabold text-center text-indigo-700 mb-6">
+      <!-- Back Button -->
+      <button onclick="window.location.href='/'" class="text-indigo-600 hover:text-indigo-800 font-semibold text-sm mb-4">
+        ← Quay lại Dashboard
+      </button>
+
+      <h1 class="text-3xl font-extrabold text-center text-indigo-700 mb-2">
         🏠 Smart Light Control
       </h1>
+      <p id="device-name-display" class="text-center text-gray-600 mb-6 font-medium"></p>
 
       <!-- STATUS -->
       <div
@@ -105,8 +111,10 @@
     </div>
 
     <script>
+      // Lấy device_id từ URL
+      const pathParts = window.location.pathname.split('/');
+      const DEVICE_ID = pathParts[pathParts.length - 1];
       const USER_ID = "light1";
-      const DEVICE_ID = "light1";
       const API_ENDPOINT = "/api/device/command";
 
       let currentUIMode = "manual";
@@ -255,7 +263,10 @@
       // ====================
       // Init
       // ====================
-      window.onload = () => updateUI("manual", "off", 100);
+      window.onload = () => {
+        document.getElementById("device-name-display").innerText = `Thiết bị: ${DEVICE_ID}`;
+        updateUI("manual", "off", 100);
+      };
     </script>
   </body>
 </html>
