@@ -25,8 +25,23 @@
   </head>
 
   <body class="bg-gray-100 min-h-screen flex items-start justify-center p-4">
+    <!-- THÊM: Header với thông tin user và nút logout -->
+    <div class="fixed top-0 left-0 right-0 bg-indigo-700 text-white p-4 shadow-lg flex justify-between items-center">
+      <div>
+        <!-- THÊM: Hiển thị tên user đã đăng nhập -->
+        <p id="user-name" class="font-semibold">Xin chào, User!</p>
+      </div>
+      <!-- THÊM: Nút logout -->
+      <button
+        class="px-4 py-2 bg-red-600 hover:bg-red-700 rounded-lg text-white font-semibold transition"
+        onclick="handleLogout()"
+      >
+        Đăng Xuất
+      </button>
+    </div>
+
     <div
-      class="bg-white p-6 sm:p-8 rounded-xl shadow-2xl w-full max-w-md mt-10"
+      class="bg-white p-6 sm:p-8 rounded-xl shadow-2xl w-full max-w-md mt-24"
     >
       <h1 class="text-3xl font-extrabold text-center text-indigo-700 mb-6">
         🏠 Smart Light Control
@@ -255,7 +270,42 @@
       // ====================
       // Init
       // ====================
-      window.onload = () => updateUI("manual", "off", 100);
+      window.onload = () => {
+        updateUI("manual", "off", 100);
+        // THÊM: Lấy thông tin user hiện tại
+        loadCurrentUser();
+      };
+
+      // THÊM: Hàm lấy thông tin user đang đăng nhập
+      function loadCurrentUser() {
+        fetch("/api/current-user")
+          .then((res) => {
+            if (res.status === 401) {
+              // THÊM: Nếu chưa đăng nhập, redirect về login
+              window.location.href = "/login";
+              return null;
+            }
+            return res.json();
+          })
+          .then((data) => {
+            if (data) {
+              // THÊM: Cập nhật tên user trên header
+              document.getElementById("user-name").textContent = `Xin chào, ${data.username}!`;
+            }
+          })
+          .catch((err) => console.error("Lỗi lấy thông tin user:", err));
+      }
+
+      // THÊM: Hàm xử lý logout
+      function handleLogout() {
+        // THÊM: Gửi request logout đến server
+        fetch("/logout", { method: "POST" })
+          .then(() => {
+            // THÊM: Redirect về trang login sau khi logout
+            window.location.href = "/login";
+          })
+          .catch((err) => console.error("Lỗi logout:", err));
+      }
     </script>
   </body>
 </html>
