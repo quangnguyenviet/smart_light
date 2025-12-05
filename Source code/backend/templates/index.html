@@ -159,7 +159,7 @@
       function sendCommandAPI(action) {
         const payload = {
           user_id: USER_ID,
-          device_id: DEVICE_ID,
+          device_id:"light"+ DEVICE_ID,
           state: action,
           mode: "manual",
         };
@@ -170,7 +170,7 @@
         const newMode = currentUIMode === "manual" ? "auto" : "manual";
         const payload = {
           user_id: USER_ID,
-          device_id: DEVICE_ID,
+          device_id:"light" + DEVICE_ID,
           mode: newMode,
           state: currentUIState,
         };
