@@ -1,272 +1,249 @@
 <!DOCTYPE html>
 <html lang="vi">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Smart Light Control</title>
 
-    <!-- Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Socket.IO -->
-    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Smart Light Control</title>
 
-    <style>
-      body {
-        font-family: "Inter", sans-serif;
-      }
-      input[type="range"]::-webkit-slider-thumb {
-        -webkit-appearance: none;
-        width: 16px;
-        height: 16px;
-        border-radius: 50%;
-        background: #4f46e5;
-      }
-    </style>
-  </head>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Socket.IO -->
+  <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
 
-  <body class="bg-gray-100 min-h-screen flex items-start justify-center p-4">
-    <div
-      class="bg-white p-6 sm:p-8 rounded-xl shadow-2xl w-full max-w-md mt-10"
-    >
-      <!-- Back Button -->
-      <button onclick="window.location.href='/'" class="text-indigo-600 hover:text-indigo-800 font-semibold text-sm mb-4">
-        ← Quay lại Dashboard
-      </button>
+  <style>
+    body {
+      font-family: "Inter", sans-serif;
+    }
 
-      <h1 class="text-3xl font-extrabold text-center text-indigo-700 mb-2">
-        🏠 Smart Light Control
-      </h1>
-      <p id="device-name-display" class="text-center text-gray-600 mb-6 font-medium"></p>
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: #4f46e5;
+    }
+  </style>
+</head>
 
-      <!-- STATUS -->
-      <div
-        id="status-display"
-        class="text-center p-4 rounded-lg shadow-inner bg-indigo-50"
-      >
-        <p class="text-lg font-semibold text-gray-600">Trạng thái hiện tại:</p>
-        <p id="current-mode" class="text-2xl font-bold text-indigo-600">
-          CHẾ ĐỘ: MANUAL
-        </p>
-        <p id="current-state" class="text-xl font-medium text-gray-800">
-          ĐÈN: TẮT
-        </p>
-      </div>
+<body class="bg-gray-100 min-h-screen flex items-start justify-center p-4">
+  <div class="bg-white p-6 sm:p-8 rounded-xl shadow-2xl w-full max-w-md mt-10">
+    <!-- Back Button -->
+    <button onclick="window.location.href='/'" class="text-indigo-600 hover:text-indigo-800 font-semibold text-sm mb-4">
+      ← Quay lại Dashboard
+    </button>
 
-      <!-- BRIGHTNESS -->
-      <div class="border-t pt-6">
-        <h3
-          class="text-xl font-semibold text-gray-700 mb-4 flex justify-between items-center"
-        >
-          Điều chỉnh Độ sáng
-          <span id="brightness-value" class="text-indigo-600 font-bold"
-            >100%</span
-          >
-        </h3>
-        <input
-          type="range"
-          min="0"
-          max="100"
-          value="100"
-          id="brightness-slider"
-          class="w-full h-2 bg-gray-300 rounded-lg"
-          oninput="handleBrightnessInput(this.value)"
-        />
-        <p class="text-sm text-gray-500 mt-2">Chỉ hoạt động ở chế độ Manual.</p>
-      </div>
+    <h1 class="text-3xl font-extrabold text-center text-indigo-700 mb-2">
+      🏠 Smart Light Control
+    </h1>
+    <p id="device-name-display" class="text-center text-gray-600 mb-6 font-medium"></p>
 
-      <!-- ON / OFF BUTTONS -->
-      <div
-        class="flex flex-col sm:flex-row justify-center space-y-3 sm:space-y-0 sm:space-x-4 border-t pt-6"
-      >
-        <button
-          id="btn-on"
-          class="w-full sm:w-1/2 p-4 rounded-xl text-white font-medium bg-green-500 hover:bg-green-600"
-          onclick="sendCommandAPI('on')"
-        >
-          BẬT ĐÈN
-        </button>
-        <button
-          id="btn-off"
-          class="w-full sm:w-1/2 p-4 rounded-xl text-white font-medium bg-red-500 hover:bg-red-600"
-          onclick="sendCommandAPI('off')"
-        >
-          TẮT ĐÈN
-        </button>
-      </div>
-
-      <!-- SWITCH MODE -->
-      <button
-        id="btn-mode"
-        class="w-full mt-4 p-3 rounded-xl bg-indigo-600 text-white font-semibold"
-        onclick="toggleMode()"
-      >
-        Chuyển sang AUTO MODE
-      </button>
-
-      <!-- Message Box -->
-      <div
-        id="message-box"
-        class="mt-4 p-3 text-sm rounded-lg hidden text-center"
-      ></div>
+    <!-- STATUS -->
+    <div id="status-display" class="text-center p-4 rounded-lg shadow-inner bg-indigo-50">
+      <p class="text-lg font-semibold text-gray-600">Trạng thái hiện tại:</p>
+      <p id="current-mode" class="text-2xl font-bold text-indigo-600">
+        CHẾ ĐỘ: MANUAL
+      </p>
+      <p id="current-state" class="text-xl font-medium text-gray-800">
+        ĐÈN: TẮT
+      </p>
     </div>
 
-    <script>
-      // Lấy device_id từ URL
-      const pathParts = window.location.pathname.split('/');
-      const DEVICE_ID = pathParts[pathParts.length - 1];
-      const USER_ID = "light1";
-      const API_ENDPOINT = "/api/device/command";
+    <!-- BRIGHTNESS -->
+    <div class="border-t pt-6">
+      <h3 class="text-xl font-semibold text-gray-700 mb-4 flex justify-between items-center">
+        Điều chỉnh Độ sáng
+        <span id="brightness-value" class="text-indigo-600 font-bold">100%</span>
+      </h3>
+      <input type="range" min="0" max="100" value="100" id="brightness-slider" class="w-full h-2 bg-gray-300 rounded-lg"
+        oninput="handleBrightnessInput(this.value)" />
+      <p class="text-sm text-gray-500 mt-2">Chỉ hoạt động ở chế độ Manual.</p>
+    </div>
 
-      let currentUIMode = "manual";
-      let currentUIState = "off";
+    <!-- ON / OFF BUTTONS -->
+    <div class="flex flex-col sm:flex-row justify-center space-y-3 sm:space-y-0 sm:space-x-4 border-t pt-6">
+      <button id="btn-on" class="w-full sm:w-1/2 p-4 rounded-xl text-white font-medium bg-green-500 hover:bg-green-600"
+        onclick="sendCommandAPI('on')">
+        BẬT ĐÈN
+      </button>
+      <button id="btn-off" class="w-full sm:w-1/2 p-4 rounded-xl text-white font-medium bg-red-500 hover:bg-red-600"
+        onclick="sendCommandAPI('off')">
+        TẮT ĐÈN
+      </button>
+    </div>
 
-      // ====================
-      // WebSocket (brightness)
-      // ====================
-      const socket = io();
-      socket.on("connect", () => console.log("WebSocket connected!"));
+    <!-- SWITCH MODE -->
+    <button id="btn-mode" class="w-full mt-4 p-3 rounded-xl bg-indigo-600 text-white font-semibold"
+      onclick="toggleMode()">
+      Chuyển sang AUTO MODE
+    </button>
 
-      let brightnessTimeout;
-      function handleBrightnessInput(value) {
-        document.getElementById("brightness-value").innerText = value + "%";
+    <!-- Message Box -->
+    <div id="message-box" class="mt-4 p-3 text-sm rounded-lg hidden text-center"></div>
+  </div>
 
-        if (currentUIMode !== "manual") return;
+  <script>
+    // Lấy device_id từ URL
+    const pathParts = window.location.pathname.split('/');
+    const DEVICE_ID = "light" + pathParts[pathParts.length - 1];
+    const USER_ID = "light1";
+    const API_ENDPOINT = "/api/device/command";
 
-        clearTimeout(brightnessTimeout);
-        brightnessTimeout = setTimeout(() => {
-          socket.emit("brightness_change", {
-            user_id: USER_ID,
-            device_id: DEVICE_ID,
-            brightness: parseInt(value),
-          });
-        }, 100); // debounce 100ms
-      }
+    let currentUIMode = "manual";
+    let currentUIState = "off";
 
-      // ====================
-      // API (ON/OFF & mode)
-      // ====================
-      function executeFetch(payload) {
-        fetch(API_ENDPOINT, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        })
-          .then((res) => res.json())
-          .then(() => showMessage("Lệnh đã gửi!"))
-          .catch(() => showMessage("⚠ Lỗi gửi lệnh!"));
-      }
+    // ====================
+    // WebSocket (brightness)
+    // ====================
+    const socket = io();
+    socket.on("connect", () => console.log("WebSocket connected!"));
 
-      function sendCommandAPI(action) {
-        const payload = {
+    let brightnessTimeout;
+    function handleBrightnessInput(value) {
+      document.getElementById("brightness-value").innerText = value + "%";
+
+      if (currentUIMode !== "manual") return;
+
+      clearTimeout(brightnessTimeout);
+      brightnessTimeout = setTimeout(() => {
+        socket.emit("brightness_change", {
           user_id: USER_ID,
-          device_id:"light"+ DEVICE_ID,
-          state: action,
-          mode: "manual",
-        };
-        executeFetch(payload);
-      }
-
-      function toggleMode() {
-        const newMode = currentUIMode === "manual" ? "auto" : "manual";
-        const payload = {
-          user_id: USER_ID,
-          device_id:"light" + DEVICE_ID,
-          mode: newMode,
-          state: currentUIState,
-        };
-        executeFetch(payload);
-      }
-
-      // ====================
-      // UI & Realtime Updates from backend
-      // ====================
-      socket.on("device_state_update", (data) => {
-        if (!data || data.device_id !== DEVICE_ID) return;
-        const mode = data.mode || currentUIMode;
-        const state = data.state || currentUIState;
-        const brightness =
-          data.brightness !== undefined ? data.brightness : 100;
-        updateUI(mode, state, brightness);
-      });
-
-      function updateUI(mode, state, brightness = 100) {
-        currentUIMode = mode;
-        currentUIState = state;
-
-        const modeDisplay = document.getElementById("current-mode");
-        const stateDisplay = document.getElementById("current-state");
-        const statusBox = document.getElementById("status-display");
-        const btnMode = document.getElementById("btn-mode");
-        const brightnessSlider = document.getElementById("brightness-slider");
-        const brightnessValue = document.getElementById("brightness-value");
-        const btnOn = document.getElementById("btn-on");
-        const btnOff = document.getElementById("btn-off");
-
-        // Mode / State text
-        modeDisplay.innerText = `CHẾ ĐỘ: ${mode.toUpperCase()}`;
-        stateDisplay.innerText = `ĐÈN: ${state.toUpperCase()}`;
-
-        // Status box color
-        if (state === "on") {
-          statusBox.classList.remove("bg-indigo-50");
-          statusBox.classList.add("bg-yellow-100");
-          stateDisplay.classList.remove("text-gray-800");
-          stateDisplay.classList.add("text-yellow-700");
-        } else {
-          statusBox.classList.remove("bg-yellow-100");
-          statusBox.classList.add("bg-indigo-50");
-          stateDisplay.classList.remove("text-yellow-700");
-          stateDisplay.classList.add("text-gray-800");
-        }
-
-        // Mode button
-        if (mode === "manual") {
-          btnMode.innerText = "Chuyển sang AUTO MODE";
-          btnMode.classList.remove("bg-green-600");
-          btnMode.classList.add("bg-indigo-600");
-        } else {
-          btnMode.innerText = "Chuyển sang MANUAL MODE";
-          btnMode.classList.remove("bg-indigo-600");
-          btnMode.classList.add("bg-green-600");
-        }
-
-        // Brightness slider
-        brightnessSlider.value = brightness;
-        brightnessValue.innerText = brightness + "%";
-
-        // ON/OFF buttons highlight
-        btnOn.classList.remove("ring-4", "ring-green-300");
-        btnOff.classList.remove("ring-4", "ring-red-300");
-        if (state === "on") btnOn.classList.add("ring-4", "ring-green-300");
-        else btnOff.classList.add("ring-4", "ring-red-300");
-
-        // Disable controls if not manual
-        const isManual = mode === "manual";
-        [brightnessSlider, btnOn, btnOff].forEach((el) => {
-          el.disabled = !isManual;
-          if (!isManual) el.classList.add("opacity-50", "cursor-not-allowed");
-          else el.classList.remove("opacity-50", "cursor-not-allowed");
+          device_id: DEVICE_ID,
+          brightness: parseInt(value),
         });
-      }
+      }, 100); // debounce 100ms
+    }
 
-      // ====================
-      // Message Box
-      // ====================
-      function showMessage(text) {
-        const box = document.getElementById("message-box");
-        box.innerText = text;
-        box.classList.remove("hidden");
-        box.classList.add("bg-indigo-100", "text-indigo-800");
-        setTimeout(() => box.classList.add("hidden"), 2000);
-      }
+    // ====================
+    // API (ON/OFF & mode)
+    // ====================
+    function executeFetch(payload) {
+      fetch(API_ENDPOINT, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      })
+        .then((res) => res.json())
+        .then(() => showMessage("Lệnh đã gửi!"))
+        .catch(() => showMessage("⚠ Lỗi gửi lệnh!"));
+    }
 
-      // ====================
-      // Init
-      // ====================
-      window.onload = () => {
-        document.getElementById("device-name-display").innerText = `Thiết bị: ${DEVICE_ID}`;
-        updateUI("manual", "off", 100);
+    function sendCommandAPI(action) {
+      const payload = {
+        user_id: USER_ID,
+        device_id: DEVICE_ID,
+        state: action,
+        mode: "manual",
       };
-    </script>
-  </body>
+      executeFetch(payload);
+    }
+
+    function toggleMode() {
+      const newMode = currentUIMode === "manual" ? "auto" : "manual";
+      const payload = {
+        user_id: USER_ID,
+        device_id: DEVICE_ID,
+        mode: newMode,
+        state: currentUIState,
+      };
+      executeFetch(payload);
+    }
+
+    // ====================
+    // UI & Realtime Updates from backend
+    // ====================
+    socket.on("device_state_update", (data) => {
+      //"light" + DEVICE_ID
+      //pathParts[pathParts.length - 1]
+      console.log("WS received:", data);
+      updateUI(data.mode, data.state, data.brightness);
+      if (!data || (data.device_id !== DEVICE_ID && data.device_name !== DEVICE_ID)) return;
+      const mode = data.mode || currentUIMode;
+      const state = data.state || currentUIState;
+      const brightness =
+        data.brightness !== undefined ? data.brightness : 100;
+      updateUI(mode, state, brightness);
+    });
+
+    function updateUI(mode, state, brightness = 100) {
+      currentUIMode = mode;
+      currentUIState = state;
+
+      const modeDisplay = document.getElementById("current-mode");
+      const stateDisplay = document.getElementById("current-state");
+      const statusBox = document.getElementById("status-display");
+      const btnMode = document.getElementById("btn-mode");
+      const brightnessSlider = document.getElementById("brightness-slider");
+      const brightnessValue = document.getElementById("brightness-value");
+      const btnOn = document.getElementById("btn-on");
+      const btnOff = document.getElementById("btn-off");
+
+      // Mode / State text
+      modeDisplay.innerText = `CHẾ ĐỘ: ${mode.toUpperCase()}`;
+      stateDisplay.innerText = `ĐÈN: ${state.toUpperCase()}`;
+
+      // Status box color
+      if (state === "on") {
+        statusBox.classList.remove("bg-indigo-50");
+        statusBox.classList.add("bg-yellow-100");
+        stateDisplay.classList.remove("text-gray-800");
+        stateDisplay.classList.add("text-yellow-700");
+      } else {
+        statusBox.classList.remove("bg-yellow-100");
+        statusBox.classList.add("bg-indigo-50");
+        stateDisplay.classList.remove("text-yellow-700");
+        stateDisplay.classList.add("text-gray-800");
+      }
+
+      // Mode button
+      if (mode === "manual") {
+        btnMode.innerText = "Chuyển sang AUTO MODE";
+        btnMode.classList.remove("bg-green-600");
+        btnMode.classList.add("bg-indigo-600");
+      } else {
+        btnMode.innerText = "Chuyển sang MANUAL MODE";
+        btnMode.classList.remove("bg-indigo-600");
+        btnMode.classList.add("bg-green-600");
+      }
+
+      // Brightness slider
+      brightnessSlider.value = brightness;
+      brightnessValue.innerText = brightness + "%";
+
+      // ON/OFF buttons highlight
+      btnOn.classList.remove("ring-4", "ring-green-300");
+      btnOff.classList.remove("ring-4", "ring-red-300");
+      if (state === "on") btnOn.classList.add("ring-4", "ring-green-300");
+      else btnOff.classList.add("ring-4", "ring-red-300");
+
+      // Disable controls if not manual
+      const isManual = mode === "manual";
+      [brightnessSlider, btnOn, btnOff].forEach((el) => {
+        el.disabled = !isManual;
+        if (!isManual) el.classList.add("opacity-50", "cursor-not-allowed");
+        else el.classList.remove("opacity-50", "cursor-not-allowed");
+      });
+    }
+
+    // ====================
+    // Message Box
+    // ====================
+    function showMessage(text) {
+      const box = document.getElementById("message-box");
+      box.innerText = text;
+      box.classList.remove("hidden");
+      box.classList.add("bg-indigo-100", "text-indigo-800");
+      setTimeout(() => box.classList.add("hidden"), 2000);
+    }
+
+    // ====================
+    // Init
+    // ====================
+    window.onload = () => {
+      document.getElementById("device-name-display").innerText = `Thiết bị: ${DEVICE_ID}`;
+      updateUI("manual", "off", 100);
+    };
+  </script>
+</body>
+
 </html>

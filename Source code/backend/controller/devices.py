@@ -71,7 +71,7 @@ def on_message(client, userdata, msg):
 
         # Emit realtime cho frontend (broadcast tới tất cả clients)
         print(f"[ACTION] Broadcasting to all connected clients")
-        socketio.emit("device_state_update", data, broadcast=True)
+        socketio.emit("device_state_update", data)
         print(f"✅ MQTT message processed successfully\n")
     except Exception as e:
         print(f"❌ MQTT Callback Error: {e}\n")
