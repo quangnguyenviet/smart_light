@@ -1,8 +1,8 @@
 import json
-from datetime import datetime
 from config.db import get_db_connection
 from config.web_socket import socketio
 import paho.mqtt.client as mqtt
+from datetime import datetime, timezone
 
 # ====================
 # MQTT SETUP
@@ -23,7 +23,7 @@ def update_device_state(data):
     mode = data.get("mode")
     brightness = data.get("brightness")
     is_on = (state == "on")
-    now = datetime.now()
+    now = datetime.now(timezone.utc)
 
     conn = None
     try:
@@ -61,6 +61,21 @@ def on_message(client, userdata, msg):
         payload = msg.payload.decode()
         print(f"[MQTT] Topic={msg.topic} Payload={payload}")
         data = json.loads(payload)
+        topic = msg.topic
+
+        # Nếu là heartbeat
+        if topic.endswith("/heartbeat"):
+            device_id = data.get("device_id")
+            now = datetime.now(timezone.utc)
+            conn = get_db_connection()
+            cursor = conn.cursor()
+            cursor.execute(
+                "UPDATE devices SET last_online=%s WHERE device_name=%s",
+                (now, device_id)
+            )
+            conn.commit()
+            conn.close()
+            return
 
         # Update DB
         update_device_state(data)

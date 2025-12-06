@@ -173,6 +173,7 @@
       // UI & Realtime Updates from backend
       // ====================
       socket.on("device_state_update", (data) => {
+        console.log("hellllllllllllllll", data);
         if (!data || data.device_id !== DEVICE_ID) return;
         const mode = data.mode || currentUIMode;
         const state = data.state || currentUIState;

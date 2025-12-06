@@ -24,6 +24,12 @@ String user_id   = "light1";
 String device_id = "light1";
 String topic_cmd   = "home/" + user_id + "/" + device_id + "/cmd";
 String topic_state = "home/" + user_id + "/" + device_id + "/state";
+String topic_heartbeat = "home/" + user_id + "/" + device_id + "/heartbeat";
+
+
+// cau hinh hearbeat
+unsigned long lastHeartbeatTime = 0;
+const unsigned long HEARTBEAT_INTERVAL = 10000; // 10 giây
 
 // ============================
 // WiFi + MQTT Clients
@@ -170,6 +176,21 @@ void reconnectMQTT() {
 }
 
 // ============================
+// Gửi heartbeat
+// ============================
+void publishHeartbeat() {
+    StaticJsonDocument<128> doc;
+    doc["device_id"] = device_id;
+    doc["timestamp"] = String(millis() / 1000);
+
+    char buffer[128];
+    size_t n = serializeJson(doc, buffer);
+    client.publish(topic_heartbeat.c_str(), buffer, n);
+    Serial.print("💓 Heartbeat sent: ");
+    Serial.println(buffer);
+}
+
+// ============================
 // Setup
 // ============================
 void setup() {
@@ -200,6 +221,12 @@ void loop() {
         } else if (current_state == "on" && millis() - lastMotionTime > AUTO_OFF_DELAY_MS) {
             setLightState("off", -1, "PIR_TIMEOUT");
         }
+    }
+
+    // Gửi heartbeat mỗi 10 giây
+    if (millis() - lastHeartbeatTime >= HEARTBEAT_INTERVAL) {
+        publishHeartbeat();
+        lastHeartbeatTime = millis();
     }
 
     delay(50);
