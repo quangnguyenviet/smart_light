@@ -1,213 +1,240 @@
 <!DOCTYPE html>
 <html lang="vi">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Smart Light Dashboard</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
-    <style>
-      body {
-        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        min-height: 100vh;
-      }
 
-      .device-card {
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        position: relative;
-        overflow: hidden;
-      }
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Smart Light Dashboard</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+  <style>
+    body {
+      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
 
-      .device-card::before {
-        content: "";
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        background: linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0) 100%);
-        opacity: 0;
-        transition: opacity 0.3s;
-      }
+    }
 
-      .device-card:hover::before {
+    .device-card {
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .device-card::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0) 100%);
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+
+    .device-card:hover::before {
+      opacity: 1;
+    }
+
+    .device-card:hover {
+      transform: translateY(-8px);
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+    }
+
+    .device-card.on {
+      background: linear-gradient(135deg, #ffd89b 0%, #19547b 100%);
+    }
+
+    .device-card.off {
+      background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+    }
+
+    .status-badge {
+      display: inline-block;
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+      animation: pulse 2s infinite;
+    }
+
+    .status-badge.on {
+      background-color: #10b981;
+      color: white;
+      box-shadow: 0 0 10px rgba(16, 185, 129, 0.5);
+    }
+
+    .status-badge.off {
+      background-color: #6b7280;
+      color: white;
+    }
+
+    @keyframes pulse {
+
+      0%,
+      100% {
         opacity: 1;
       }
 
-      .device-card:hover {
-        transform: translateY(-8px);
-        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+      50% {
+        opacity: 0.8;
+      }
+    }
+
+    .brightness-bar {
+      background: linear-gradient(90deg, #3b82f6 0%, #8b5cf6 100%);
+      height: 4px;
+      border-radius: 2px;
+      transition: width 0.3s;
+    }
+
+    .header-title {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .refresh-indicator {
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      background: #10b981;
+      border-radius: 50%;
+      animation: blink 2s infinite;
+      margin-left: 8px;
+    }
+
+    @keyframes blink {
+
+      0%,
+      100% {
+        opacity: 1;
       }
 
-      .device-card.on {
-        background: linear-gradient(135deg, #ffd89b 0%, #19547b 100%);
+      50% {
+        opacity: 0.3;
       }
+    }
+  </style>
+</head>
 
-      .device-card.off {
-        background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
-      }
-
-      .status-badge {
-        display: inline-block;
-        padding: 6px 12px;
-        border-radius: 20px;
-        font-size: 12px;
-        font-weight: 600;
-        animation: pulse 2s infinite;
-      }
-
-      .status-badge.on {
-        background-color: #10b981;
-        color: white;
-        box-shadow: 0 0 10px rgba(16, 185, 129, 0.5);
-      }
-
-      .status-badge.off {
-        background-color: #6b7280;
-        color: white;
-      }
-
-      @keyframes pulse {
-        0%, 100% {
-          opacity: 1;
-        }
-        50% {
-          opacity: 0.8;
-        }
-      }
-
-      .brightness-bar {
-        background: linear-gradient(90deg, #3b82f6 0%, #8b5cf6 100%);
-        height: 4px;
-        border-radius: 2px;
-        transition: width 0.3s;
-      }
-
-      .header-title {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        background-clip: text;
-      }
-
-      .refresh-indicator {
-        display: inline-block;
-        width: 8px;
-        height: 8px;
-        background: #10b981;
-        border-radius: 50%;
-        animation: blink 2s infinite;
-        margin-left: 8px;
-      }
-
-      @keyframes blink {
-        0%, 100% { opacity: 1; }
-        50% { opacity: 0.3; }
-      }
-    </style>
-  </head>
-
-  <body class="p-6">
-    <div class="max-w-7xl mx-auto">
-      <!-- Header -->
-      <div class="mb-12 text-center">
-        <h1 class="text-5xl font-black mb-3 text-white">
-          💡 Smart Light Control
-        </h1>
-        <p class="text-indigo-100 text-lg">Quản lý và điều khiển các thiết bị chiếu sáng thông minh
-          <span class="refresh-indicator"></span>
-        </p>
-      </div>
-
-      <!-- Stats Section -->
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-        <div class="bg-white/20 backdrop-blur-md rounded-xl p-6 text-white border border-white/30">
-          <p class="text-indigo-100 text-sm mb-2">Tổng Thiết Bị</p>
-          <p id="total-devices" class="text-4xl font-bold">0</p>
-        </div>
-        <div class="bg-green-500/20 backdrop-blur-md rounded-xl p-6 text-white border border-green-500/30">
-          <p class="text-green-100 text-sm mb-2">Đang Bật</p>
-          <p id="devices-on" class="text-4xl font-bold">0</p>
-        </div>
-        <div class="bg-red-500/20 backdrop-blur-md rounded-xl p-6 text-white border border-red-500/30">
-          <p class="text-red-100 text-sm mb-2">Đã Tắt</p>
-          <p id="devices-off" class="text-4xl font-bold">0</p>
-        </div>
-      </div>
-
-      <!-- Devices Grid -->
-      <div id="devices-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        <!-- Loading skeleton -->
-        <div class="device-card off p-6 rounded-2xl shadow-xl animate-pulse border border-white/20">
-          <div class="h-6 bg-gray-300 rounded mb-4"></div>
-          <div class="h-4 bg-gray-300 rounded mb-3"></div>
-          <div class="h-4 bg-gray-300 rounded w-2/3"></div>
-        </div>
-      </div>
-
-      <!-- Empty State -->
-      <div id="empty-state" class="hidden text-center py-20">
-        <p class="text-white text-2xl font-semibold">📦 Không có thiết bị nào</p>
-        <p class="text-indigo-100 mt-2">Hãy thêm thiết bị mới để bắt đầu</p>
-      </div>
+<body class="p-6">
+  <div class="max-w-7xl mx-auto">
+    <!-- Header -->
+    <div class="mb-12 text-center">
+      <h1 class="text-5xl font-black mb-3 text-white">
+        💡 Smart Light Control
+      </h1>
+      <p class="text-indigo-100 text-lg">Quản lý và điều khiển các thiết bị chiếu sáng thông minh
+        <span class="refresh-indicator"></span>
+      </p>
+    </div>
+    <div class="fixed top-4 right-4 z-50">
+      <button onclick="logout()"
+        class="bg-red-600 hover:bg-red-700 text-white px-6 py-3 rounded-lg font-semibold shadow-lg transition">
+        Đăng xuất
+      </button>
     </div>
 
     <script>
-      const socket = io();
+      function logout() {
+        fetch("/logout", { method: "POST" })
+          .then(() => {
+            window.location.href = "/login";
+          });
+      }
+    </script>
+    <!-- Stats Section -->
+     
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+      <div class="bg-white/20 backdrop-blur-md rounded-xl p-6 text-white border border-white/30">
+        <p class="text-indigo-100 text-sm mb-2">Tổng Thiết Bị</p>
+        <p id="total-devices" class="text-4xl font-bold">0</p>
+      </div>
+      <div class="bg-green-500/20 backdrop-blur-md rounded-xl p-6 text-white border border-green-500/30">
+        <p class="text-green-100 text-sm mb-2">Đang Bật</p>
+        <p id="devices-on" class="text-4xl font-bold">0</p>
+      </div>
+      <div class="bg-red-500/20 backdrop-blur-md rounded-xl p-6 text-white border border-red-500/30">
+        <p class="text-red-100 text-sm mb-2">Đã Tắt</p>
+        <p id="devices-off" class="text-4xl font-bold">0</p>
+      </div>
+    </div>
 
-      // Lấy danh sách devices
-      async function loadDevices() {
-        try {
-          const response = await fetch("/api/devices");
-          const devices = await response.json();
+    <!-- Devices Grid -->
+    <div id="devices-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <!-- Loading skeleton -->
+      <div class="device-card off p-6 rounded-2xl shadow-xl animate-pulse border border-white/20">
+        <div class="h-6 bg-gray-300 rounded mb-4"></div>
+        <div class="h-4 bg-gray-300 rounded mb-3"></div>
+        <div class="h-4 bg-gray-300 rounded w-2/3"></div>
+      </div>
+    </div>
 
-          if (devices.length === 0) {
-            document.getElementById("empty-state").classList.remove("hidden");
-            document.getElementById("devices-container").innerHTML = "";
-            updateStats(devices);
-            return;
-          }
+    <!-- Empty State -->
+    <div id="empty-state" class="hidden text-center py-20">
+      <p class="text-white text-2xl font-semibold">📦 Không có thiết bị nào</p>
+      <p class="text-indigo-100 mt-2">Hãy thêm thiết bị mới để bắt đầu</p>
+    </div>
+  </div>
 
-          document.getElementById("empty-state").classList.add("hidden");
-          renderDevices(devices);
+  <script>
+    const socket = io();
+
+    // Lấy danh sách devices
+    async function loadDevices() {
+      try {
+        const response = await fetch("/api/devices");
+        const devices = await response.json();
+
+        if (devices.length === 0) {
+          document.getElementById("empty-state").classList.remove("hidden");
+          document.getElementById("devices-container").innerHTML = "";
           updateStats(devices);
-        } catch (error) {
-          console.error("Error loading devices:", error);
+          return;
         }
+
+        document.getElementById("empty-state").classList.add("hidden");
+        renderDevices(devices);
+        updateStats(devices);
+      } catch (error) {
+        console.error("Error loading devices:", error);
       }
+    }
 
-      // Cập nhật thống kê
-      function updateStats(devices) {
-        const total = devices.length;
-        const on = devices.filter(d => d.is_on).length;
-        const off = total - on;
+    // Cập nhật thống kê
+    function updateStats(devices) {
+      const total = devices.length;
+      const on = devices.filter(d => d.is_on).length;
+      const off = total - on;
 
-        document.getElementById("total-devices").innerText = total;
-        document.getElementById("devices-on").innerText = on;
-        document.getElementById("devices-off").innerText = off;
-      }
+      document.getElementById("total-devices").innerText = total;
+      document.getElementById("devices-on").innerText = on;
+      document.getElementById("devices-off").innerText = off;
+    }
 
-      // Render devices cards
-      function renderDevices(devices) {
-        const container = document.getElementById("devices-container");
-        container.innerHTML = "";
+    // Render devices cards
+    function renderDevices(devices) {
+      const container = document.getElementById("devices-container");
+      container.innerHTML = "";
 
-        devices.forEach((device) => {
-          const isOn = device.is_on;
-          const cardClass = isOn ? "device-card on" : "device-card off";
-          const statusBadge = isOn ? "status-badge on" : "status-badge off";
-          const statusText = isOn ? "🟢 Đang Bật" : "⚪ Đã Tắt";
-          const modeColor = device.mode === "auto" ? "bg-purple-500/80" : "bg-blue-500/80";
-          const modeText = device.mode === "auto" ? "🤖 AUTO" : "🎮 MANUAL";
+      devices.forEach((device) => {
+        const isOn = device.is_on;
+        const cardClass = isOn ? "device-card on" : "device-card off";
+        const statusBadge = isOn ? "status-badge on" : "status-badge off";
+        const statusText = isOn ? "🟢 Đang Bật" : "⚪ Đã Tắt";
+        const modeColor = device.mode === "auto" ? "bg-purple-500/80" : "bg-blue-500/80";
+        const modeText = device.mode === "auto" ? "🤖 AUTO" : "🎮 MANUAL";
 
-          const card = document.createElement("div");
-          card.className = `${cardClass} p-6 rounded-2xl shadow-xl cursor-pointer border border-white/20 relative`;
-          card.onclick = () => goToControl(device.device_id);
+        const card = document.createElement("div");
+        card.className = `${cardClass} p-6 rounded-2xl shadow-xl cursor-pointer border border-white/20 relative`;
+        card.onclick = () => goToControl(device.device_id);
 
-          const brightness = device.brightness || 100;
+        const brightness = device.brightness || 100;
 
-          card.innerHTML = `
+        card.innerHTML = `
             <div class="flex justify-between items-start mb-4">
               <div>
                 <h2 class="text-2xl font-bold text-white mb-1">${device.device_name}</h2>
@@ -235,30 +262,31 @@
             </button>
           `;
 
-          container.appendChild(card);
-        });
-      }
-
-      // Điều hướng tới trang control
-      function goToControl(deviceId) {
-        window.location.href = `/control/${deviceId}`;
-      }
-
-      // Real-time update từ WebSocket
-      socket.on("device_state_update", (data) => {
-        console.log("📡 Real-time update:", data);
-        loadDevices();
+        container.appendChild(card);
       });
+    }
 
-      socket.on("connect", () => {
-        console.log("✅ WebSocket connected!");
-      });
+    // Điều hướng tới trang control
+    function goToControl(deviceId) {
+      window.location.href = `/control/${deviceId}`;
+    }
 
-      // Load devices khi trang mở
-      window.onload = () => loadDevices();
+    // Real-time update từ WebSocket
+    socket.on("device_state_update", (data) => {
+      console.log("📡 Real-time update:", data);
+      loadDevices();
+    });
 
-      // Refresh danh sách mỗi 2 giây
-      setInterval(loadDevices, 2000);
-    </script>
-  </body>
+    socket.on("connect", () => {
+      console.log("✅ WebSocket connected!");
+    });
+
+    // Load devices khi trang mở
+    window.onload = () => loadDevices();
+
+    // Refresh danh sách mỗi 2 giây
+    setInterval(loadDevices, 2000);
+  </script>
+</body>
+
 </html>
