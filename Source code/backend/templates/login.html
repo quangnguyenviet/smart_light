@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Smart Light - Đăng nhập</title>
+
+    <!-- THÊM: Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <style>
+      body {
+        font-family: "Inter", sans-serif;
+      }
+    </style>
+  </head>
+
+  <body class="bg-gradient-to-br from-indigo-600 to-blue-600 min-h-screen flex items-center justify-center p-4">
+    <!-- THÊM: Container chính -->
+    <div class="w-full max-w-md">
+      <!-- THÊM: Card đăng nhập/đăng kí -->
+      <div class="bg-white rounded-xl shadow-2xl overflow-hidden">
+        <!-- THÊM: Header với logo -->
+        <div class="bg-indigo-700 text-white p-8 text-center">
+          <h1 class="text-4xl font-extrabold">🏠</h1>
+          <h2 class="text-2xl font-bold mt-2">Smart Light Control</h2>
+        </div>
+
+        <!-- THÊM: Tab chuyển đổi login/register -->
+        <div class="flex border-b">
+          <button
+            id="login-tab"
+            class="flex-1 py-4 px-6 text-center font-semibold bg-indigo-50 text-indigo-700 border-b-2 border-indigo-700 cursor-pointer"
+            onclick="switchTab('login')"
+          >
+            Đăng Nhập
+          </button>
+          <button
+            id="register-tab"
+            class="flex-1 py-4 px-6 text-center font-semibold text-gray-600 hover:bg-gray-50 cursor-pointer"
+            onclick="switchTab('register')"
+          >
+            Đăng Kí
+          </button>
+        </div>
+
+        <!-- THÊM: Nội dung form -->
+        <div class="p-8">
+          <!-- THÊM: Form đăng nhập -->
+          <div id="login-form" class="space-y-4">
+            <div>
+              <label class="block text-sm font-semibold text-gray-700 mb-2">
+                Tên đăng nhập
+              </label>
+              <!-- THÊM: Input username đăng nhập -->
+              <input
+                id="login-username"
+                type="text"
+                class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600"
+                placeholder="Nhập tên đăng nhập"
+              />
+            </div>
+
+            <div>
+              <label class="block text-sm font-semibold text-gray-700 mb-2">
+                Mật khẩu
+              </label>
+              <!-- THÊM: Input password đăng nhập -->
+              <input
+                id="login-password"
+                type="password"
+                class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600"
+                placeholder="Nhập mật khẩu"
+              />
+            </div>
+
+            <!-- THÊM: Message box cho lỗi/thành công -->
+            <div
+              id="login-message"
+              class="p-3 rounded-lg text-sm hidden text-center"
+            ></div>
+
+            <!-- THÊM: Nút đăng nhập -->
+            <button
+              class="w-full bg-indigo-600 text-white font-semibold py-3 rounded-lg hover:bg-indigo-700 transition"
+              onclick="handleLogin()"
+            >
+              Đăng Nhập
+            </button>
+          </div>
+
+          <!-- THÊM: Form đăng kí -->
+          <div id="register-form" class="space-y-4 hidden">
+            <div>
+              <label class="block text-sm font-semibold text-gray-700 mb-2">
+                Tên đăng nhập
+              </label>
+              <!-- THÊM: Input username đăng kí -->
+              <input
+                id="register-username"
+                type="text"
+                class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600"
+                placeholder="Nhập tên đăng nhập (tối thiểu 3 ký tự)"
+              />
+            </div>
+
+            <div>
+              <label class="block text-sm font-semibold text-gray-700 mb-2">
+                Email
+              </label>
+              <!-- THÊM: Input email (tùy chọn) -->
+              <input
+                id="register-email"
+                type="email"
+                class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600"
+                placeholder="Email (tùy chọn)"
+              />
+            </div>
+
+            <div>
+              <label class="block text-sm font-semibold text-gray-700 mb-2">
+                Mật khẩu
+              </label>
+              <!-- THÊM: Input password đăng kí -->
+              <input
+                id="register-password"
+                type="password"
+                class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600"
+                placeholder="Nhập mật khẩu (tối thiểu 6 ký tự)"
+              />
+            </div>
+
+            <div>
+              <label class="block text-sm font-semibold text-gray-700 mb-2">
+                Xác nhận mật khẩu
+              </label>
+              <!-- THÊM: Input password confirm -->
+              <input
+                id="register-password-confirm"
+                type="password"
+                class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600"
+                placeholder="Nhập lại mật khẩu"
+              />
+            </div>
+
+            <!-- THÊM: Message box cho lỗi/thành công -->
+            <div
+              id="register-message"
+              class="p-3 rounded-lg text-sm hidden text-center"
+            ></div>
+
+            <!-- THÊM: Nút đăng kí -->
+            <button
+              class="w-full bg-green-600 text-white font-semibold py-3 rounded-lg hover:bg-green-700 transition"
+              onclick="handleRegister()"
+            >
+              Đăng Kí
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- THÊM: Script xử lý logic -->
+    <script>
+      // THÊM: Hàm chuyển đổi tab login/register
+      function switchTab(tab) {
+        const loginForm = document.getElementById("login-form");
+        const registerForm = document.getElementById("register-form");
+        const loginTab = document.getElementById("login-tab");
+        const registerTab = document.getElementById("register-tab");
+
+        // THÊM: Ẩn/hiện form tương ứng
+        if (tab === "login") {
+          loginForm.classList.remove("hidden");
+          registerForm.classList.add("hidden");
+          loginTab.classList.add("bg-indigo-50", "text-indigo-700", "border-b-2", "border-indigo-700");
+          loginTab.classList.remove("text-gray-600", "hover:bg-gray-50");
+          registerTab.classList.remove("bg-indigo-50", "text-indigo-700", "border-b-2", "border-indigo-700");
+          registerTab.classList.add("text-gray-600", "hover:bg-gray-50");
+        } else {
+          registerForm.classList.remove("hidden");
+          loginForm.classList.add("hidden");
+          registerTab.classList.add("bg-indigo-50", "text-indigo-700", "border-b-2", "border-indigo-700");
+          registerTab.classList.remove("text-gray-600", "hover:bg-gray-50");
+          loginTab.classList.remove("bg-indigo-50", "text-indigo-700", "border-b-2", "border-indigo-700");
+          loginTab.classList.add("text-gray-600", "hover:bg-gray-50");
+        }
+      }
+
+      // THÊM: Hàm hiển thị message
+      function showMessage(elementId, message, isError) {
+        const messageBox = document.getElementById(elementId);
+        messageBox.textContent = message;
+        messageBox.classList.remove("hidden");
+        
+        // THÊM: Đổi màu dựa trên lỗi hay thành công
+        if (isError) {
+          messageBox.classList.remove("bg-green-100", "text-green-800");
+          messageBox.classList.add("bg-red-100", "text-red-800");
+        } else {
+          messageBox.classList.remove("bg-red-100", "text-red-800");
+          messageBox.classList.add("bg-green-100", "text-green-800");
+        }
+      }
+
+      // THÊM: Hàm xử lý đăng nhập
+      function handleLogin() {
+        const username = document.getElementById("login-username").value.trim();
+        const password = document.getElementById("login-password").value;
+
+        // THÊM: Validation cơ bản
+        if (!username || !password) {
+          showMessage("login-message", "Vui lòng nhập tên đăng nhập và mật khẩu", true);
+          return;
+        }
+
+        // THÊM: Gửi request đăng nhập đến server
+        fetch("/login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ username, password }),
+        })
+          .then((res) => res.json())
+          .then((data) => {
+            if (data.error) {
+              // THÊM: Hiển thị lỗi nếu đăng nhập thất bại
+              showMessage("login-message", data.error, true);
+            } else {
+              // THÊM: Redirect đến trang chính nếu đăng nhập thành công
+              showMessage("login-message", data.message, false);
+              setTimeout(() => {
+                window.location.href = "/";
+              }, 1000);
+            }
+          })
+          .catch((err) => {
+            // THÊM: Xử lý lỗi network
+            showMessage("login-message", "Lỗi kết nối", true);
+            console.error(err);
+          });
+      }
+
+      // THÊM: Hàm xử lý đăng kí
+      function handleRegister() {
+        const username = document.getElementById("register-username").value.trim();
+        const email = document.getElementById("register-email").value.trim();
+        const password = document.getElementById("register-password").value;
+        const passwordConfirm = document.getElementById("register-password-confirm").value;
+
+        // THÊM: Validation cơ bản
+        if (!username || !password || !passwordConfirm) {
+          showMessage("register-message", "Vui lòng nhập tên đăng nhập, mật khẩu và xác nhận", true);
+          return;
+        }
+
+        // THÊM: Kiểm tra độ dài username
+        if (username.length < 3) {
+          showMessage("register-message", "Tên đăng nhập phải ít nhất 3 ký tự", true);
+          return;
+        }
+
+        // THÊM: Kiểm tra độ dài password
+        if (password.length < 6) {
+          showMessage("register-message", "Mật khẩu phải ít nhất 6 ký tự", true);
+          return;
+        }
+
+        // THÊM: Kiểm tra xác nhận mật khẩu
+        if (password !== passwordConfirm) {
+          showMessage("register-message", "Mật khẩu xác nhận không trùng", true);
+          return;
+        }
+
+        // THÊM: Gửi request đăng kí đến server
+        fetch("/register", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            username,
+            email: email || null,
+            password,
+            password_confirm: passwordConfirm,
+          }),
+        })
+          .then((res) => res.json())
+          .then((data) => {
+            if (data.error) {
+              // THÊM: Hiển thị lỗi nếu đăng kí thất bại
+              showMessage("register-message", data.error, true);
+            } else {
+              // THÊM: Redirect đến trang chính nếu đăng kí thành công
+              showMessage("register-message", data.message, false);
+              setTimeout(() => {
+                window.location.href = "/";
+              }, 1000);
+            }
+          })
+          .catch((err) => {
+            // THÊM: Xử lý lỗi network
+            showMessage("register-message", "Lỗi kết nối", true);
+            console.error(err);
+          });
+      }
+
+      // THÊM: Cho phép nhấn Enter để đăng nhập/đăng kí
+      document.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") {
+          const loginForm = document.getElementById("login-form");
+          const registerForm = document.getElementById("register-form");
+
+          // THÊM: Kiểm tra form nào đang hiển thị
+          if (!loginForm.classList.contains("hidden")) {
+            handleLogin();
+          } else if (!registerForm.classList.contains("hidden")) {
+            handleRegister();
+          }
+        }
+      });
+    </script>
+  </body>
+</html>
