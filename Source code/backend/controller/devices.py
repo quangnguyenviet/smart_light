@@ -70,7 +70,7 @@ def on_message(client, userdata, msg):
         update_device_state(data)
 
         # Emit realtime cho frontend (broadcast tới tất cả clients)
-        print(f"[ACTION] Broadcasting to all connected clients")
+        print(f"WebSocket Emitted to all clients: {data}")
         socketio.emit("device_state_update", data)
         print(f"✅ MQTT message processed successfully\n")
     except Exception as e:
