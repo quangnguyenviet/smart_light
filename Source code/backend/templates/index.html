@@ -122,8 +122,10 @@
 
     <!-- SCRIPT -->
     <script>
-      const USER_ID = "light1";
-      const DEVICE_ID = "light1";
+      const USER_ID = "user1";
+      let DEVICE_ID = "{{ device_id }}";
+      console.log("DEVICE_ID from template:", DEVICE_ID);
+      // const DEVICE_ID = "light1";
       const API_ENDPOINT = "/api/device/command";
 
       let currentUIMode = "manual";
