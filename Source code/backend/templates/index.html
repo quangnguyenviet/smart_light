@@ -34,9 +34,9 @@
       </div>
       <button
         class="px-4 py-2 bg-red-600 hover:bg-red-700 rounded-lg text-white font-semibold transition"
-        onclick="handleLogout()"
+        onclick="goBackToDashboard()"
       >
-        Đăng Xuất
+        ← Quay lại Dashboard
       </button>
     </div>
 
@@ -104,6 +104,15 @@
         </button>
       </div>
 
+      <!-- THÊM: NÚT HẸN GIỜ (chỉ hiện ở chế độ MANUAL) -->
+      <button
+        id="btn-schedule"
+        class="hidden w-full mt-4 p-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold transition"
+        onclick="openScheduleModal()"
+      >
+        ⏰ Hẹn giờ bật/tắt
+      </button>
+
       <!-- SWITCH MODE -->
       <button
         id="btn-mode"
@@ -118,6 +127,58 @@
         id="message-box"
         class="mt-4 p-3 text-sm rounded-lg hidden text-center"
       ></div>
+
+      <!-- THÊM: MODAL HẸN GIỜ -->
+      <div
+        id="schedule-modal"
+        class="hidden fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50"
+      >
+        <div class="bg-white rounded-xl shadow-2xl p-6 w-full max-w-sm">
+          <h2 class="text-2xl font-bold text-indigo-700 mb-6 text-center">
+            ⏰ Hẹn giờ bật/tắt đèn
+          </h2>
+
+          <!-- THÊM: Input giờ bật -->
+          <div class="mb-4">
+            <label class="block text-sm font-semibold text-gray-700 mb-2">
+              Giờ bật đèn
+            </label>
+            <input
+              id="schedule-start-time"
+              type="time"
+              class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+            />
+          </div>
+
+          <!-- THÊM: Input giờ tắt -->
+          <div class="mb-6">
+            <label class="block text-sm font-semibold text-gray-700 mb-2">
+              Giờ tắt đèn
+            </label>
+            <input
+              id="schedule-end-time"
+              type="time"
+              class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
+            />
+          </div>
+
+          <!-- THÊM: Nút lưu và đóng -->
+          <div class="flex gap-3">
+            <button
+              class="flex-1 px-4 py-3 bg-green-600 text-white rounded-lg font-semibold hover:bg-green-700 transition"
+              onclick="saveSchedule()"
+            >
+              💾 Lưu
+            </button>
+            <button
+              class="flex-1 px-4 py-3 bg-gray-400 text-white rounded-lg font-semibold hover:bg-gray-500 transition"
+              onclick="closeScheduleModal()"
+            >
+              ✕ Đóng
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- SCRIPT -->
@@ -273,6 +334,13 @@
         if (!allowModeSwitch) btnMode.classList.add("opacity-50", "cursor-not-allowed");
         else btnMode.classList.remove("opacity-50", "cursor-not-allowed");
 
+        // THÊM: Hiển thị/ẩn nút schedule dựa trên mode (chỉ hiện khi manual mode)
+        const btnSchedule = document.getElementById("btn-schedule");
+        if (isManual) {
+          btnSchedule.classList.remove("hidden");
+        } else {
+          btnSchedule.classList.add("hidden");
+        }
       }
 
       // ================================
@@ -290,10 +358,77 @@
       }
 
       // ================================
-      // Logout
+      // THÊM: Quay lại Dashboard
       // ================================
-      function handleLogout() {
-        alert("Đăng xuất!");
+      function goBackToDashboard() {
+        window.location.href = "/";
+      }
+
+      // ================================
+      // THÊM: Mở modal hẹn giờ
+      // ================================
+      function openScheduleModal() {
+        if (currentUIMode !== "manual") {
+          showMessage("⚠️ Chỉ có ở chế độ Manual!");
+          return;
+        }
+
+        // THÊM: Fetch lịch hẹn giờ hiện tại từ server
+        fetch(`/api/schedule/${DEVICE_ID}`)
+          .then((res) => res.json())
+          .then((data) => {
+            document.getElementById("schedule-start-time").value = data.start_time || "07:00";
+            document.getElementById("schedule-end-time").value = data.end_time || "22:00";
+            document.getElementById("schedule-modal").classList.remove("hidden");
+          })
+          .catch((err) => {
+            console.error("Lỗi lấy schedule:", err);
+            // THÊM: Dùng giá trị mặc định nếu lỗi
+            document.getElementById("schedule-start-time").value = "07:00";
+            document.getElementById("schedule-end-time").value = "22:00";
+            document.getElementById("schedule-modal").classList.remove("hidden");
+          });
+      }
+
+      // ================================
+      // THÊM: Đóng modal hẹn giờ
+      // ================================
+      function closeScheduleModal() {
+        document.getElementById("schedule-modal").classList.add("hidden");
+      }
+
+      // ================================
+      // THÊM: Lưu lịch hẹn giờ
+      // ================================
+      function saveSchedule() {
+        const startTime = document.getElementById("schedule-start-time").value;
+        const endTime = document.getElementById("schedule-end-time").value;
+
+        if (!startTime || !endTime) {
+          showMessage("⚠️ Vui lòng chọn giờ bật và tắt!");
+          return;
+        }
+
+        // THÊM: Gửi POST request lưu schedule
+        fetch(`/api/schedule/${DEVICE_ID}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            user_id: USER_ID,
+            device_id: DEVICE_ID,
+            start_time: startTime,
+            end_time: endTime,
+          }),
+        })
+          .then((res) => res.json())
+          .then((data) => {
+            showMessage("✅ Lịch hẹn giờ đã được lưu!");
+            closeScheduleModal();
+          })
+          .catch((err) => {
+            console.error("Lỗi lưu schedule:", err);
+            showMessage("❌ Lỗi lưu lịch hẹn giờ!");
+          });
       }
     </script>
   </body>
