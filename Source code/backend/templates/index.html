@@ -25,13 +25,13 @@
   </head>
 
   <body class="bg-gray-100 min-h-screen flex items-start justify-center p-4">
-    <!-- THÊM: Header với thông tin user và nút logout -->
-    <div class="fixed top-0 left-0 right-0 bg-indigo-700 text-white p-4 shadow-lg flex justify-between items-center">
+    <!-- HEADER -->
+    <div
+      class="fixed top-0 left-0 right-0 bg-indigo-700 text-white p-4 shadow-lg flex justify-between items-center"
+    >
       <div>
-        <!-- THÊM: Hiển thị tên user đã đăng nhập -->
         <p id="user-name" class="font-semibold">Xin chào, User!</p>
       </div>
-      <!-- THÊM: Nút logout -->
       <button
         class="px-4 py-2 bg-red-600 hover:bg-red-700 rounded-lg text-white font-semibold transition"
         onclick="handleLogout()"
@@ -40,6 +40,7 @@
       </button>
     </div>
 
+    <!-- MAIN CARD -->
     <div
       class="bg-white p-6 sm:p-8 rounded-xl shadow-2xl w-full max-w-md mt-24"
     >
@@ -119,6 +120,7 @@
       ></div>
     </div>
 
+    <!-- SCRIPT -->
     <script>
       const USER_ID = "light1";
       const DEVICE_ID = "light1";
@@ -127,10 +129,10 @@
       let currentUIMode = "manual";
       let currentUIState = "off";
 
-      // ====================
-      // WebSocket (brightness)
-      // ====================
-      const socket = io();
+      // ================================
+      // WebSocket cho độ sáng
+      // ================================
+      const socket = io("http://localhost:5000");
       socket.on("connect", () => console.log("WebSocket connected!"));
 
       let brightnessTimeout;
@@ -146,12 +148,12 @@
             device_id: DEVICE_ID,
             brightness: parseInt(value),
           });
-        }, 100); // debounce 100ms
+        }, 100);
       }
 
-      // ====================
-      // API (ON/OFF & mode)
-      // ====================
+      // ================================
+      // FETCH API (ON/OFF + MODE)
+      // ================================
       function executeFetch(payload) {
         fetch(API_ENDPOINT, {
           method: "POST",
@@ -184,12 +186,13 @@
         executeFetch(payload);
       }
 
-      // ====================
-      // UI & Realtime Updates from backend
-      // ====================
+      // ================================
+      // Nhận realtime update từ server
+      // ================================
       socket.on("device_state_update", (data) => {
         console.log("hellllllllllllllll", data);
         if (!data || data.device_id !== DEVICE_ID) return;
+        console.log("--------------------------", data);
         const mode = data.mode || currentUIMode;
         const state = data.state || currentUIState;
         const brightness = data.brightness !== undefined ? data.brightness : 100;
@@ -197,6 +200,9 @@
         updateUI(mode, state, brightness);
       });
 
+      // ================================
+      // Cập nhật UI
+      // ================================
       function updateUI(mode, state, brightness = 100) {
         currentUIMode = mode;
         currentUIState = state;
@@ -210,24 +216,19 @@
         const btnOn = document.getElementById("btn-on");
         const btnOff = document.getElementById("btn-off");
 
-        // Mode / State text
         modeDisplay.innerText = `CHẾ ĐỘ: ${mode.toUpperCase()}`;
         stateDisplay.innerText = `ĐÈN: ${state.toUpperCase()}`;
 
-        // Status box color
+        // coloring
         if (state === "on") {
           statusBox.classList.remove("bg-indigo-50");
           statusBox.classList.add("bg-yellow-100");
-          stateDisplay.classList.remove("text-gray-800");
-          stateDisplay.classList.add("text-yellow-700");
         } else {
           statusBox.classList.remove("bg-yellow-100");
           statusBox.classList.add("bg-indigo-50");
-          stateDisplay.classList.remove("text-yellow-700");
-          stateDisplay.classList.add("text-gray-800");
         }
 
-        // Mode button
+        // mode button
         if (mode === "manual") {
           btnMode.innerText = "Chuyển sang AUTO MODE";
           btnMode.classList.remove("bg-green-600");
@@ -238,11 +239,11 @@
           btnMode.classList.add("bg-green-600");
         }
 
-        // Brightness slider
+        // brightness
         brightnessSlider.value = brightness;
         brightnessValue.innerText = brightness + "%";
 
-        // ON/OFF buttons highlight
+        // ring UI
         btnOn.classList.remove("ring-4", "ring-green-300");
         btnOff.classList.remove("ring-4", "ring-red-300");
         if (state === "on") btnOn.classList.add("ring-4", "ring-green-300");
@@ -274,55 +275,25 @@
 
       }
 
-      // ====================
-      // Message Box
-      // ====================
-      function showMessage(text) {
+      // ================================
+      // Message box
+      // ================================
+      function showMessage(msg) {
         const box = document.getElementById("message-box");
-        box.innerText = text;
+        box.innerText = msg;
         box.classList.remove("hidden");
-        box.classList.add("bg-indigo-100", "text-indigo-800");
-        setTimeout(() => box.classList.add("hidden"), 2000);
+        box.classList.add("bg-green-100", "text-green-700");
+
+        setTimeout(() => {
+          box.classList.add("hidden");
+        }, 1500);
       }
 
-      // ====================
-      // Init
-      // ====================
-      window.onload = () => {
-        updateUI("manual", "off", 100);
-        // THÊM: Lấy thông tin user hiện tại
-        loadCurrentUser();
-      };
-
-      // THÊM: Hàm lấy thông tin user đang đăng nhập
-      function loadCurrentUser() {
-        fetch("/api/current-user")
-          .then((res) => {
-            if (res.status === 401) {
-              // THÊM: Nếu chưa đăng nhập, redirect về login
-              window.location.href = "/login";
-              return null;
-            }
-            return res.json();
-          })
-          .then((data) => {
-            if (data) {
-              // THÊM: Cập nhật tên user trên header
-              document.getElementById("user-name").textContent = `Xin chào, ${data.username}!`;
-            }
-          })
-          .catch((err) => console.error("Lỗi lấy thông tin user:", err));
-      }
-
-      // THÊM: Hàm xử lý logout
+      // ================================
+      // Logout
+      // ================================
       function handleLogout() {
-        // THÊM: Gửi request logout đến server
-        fetch("/logout", { method: "POST" })
-          .then(() => {
-            // THÊM: Redirect về trang login sau khi logout
-            window.location.href = "/login";
-          })
-          .catch((err) => console.error("Lỗi logout:", err));
+        alert("Đăng xuất!");
       }
     </script>
   </body>
