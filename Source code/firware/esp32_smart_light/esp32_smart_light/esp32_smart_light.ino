@@ -2,7 +2,11 @@
 #include <PubSubClient.h>
 #include <ArduinoJson.h>
 
-#define LED_PIN         12      // Chân điều khiển Mosfet/Đèn (PWM)
+// ============================
+// Định nghĩa chân điều khiển
+// ============================
+#define MOSFET_LED_PIN  12      // Chân điều khiển Mosfet/Đèn (PWM)
+#define DIRECT_LED_PIN  19      // Chân điều khiển LED trực tiếp (KHÔNG qua Mosfet)
 #define PIR_INPUT_PIN   5       // Chân GPIO kết nối với HC-SR501
 
 // ============================
@@ -40,9 +44,9 @@ PubSubClient client(espClient);
 // ============================
 // Trạng thái đèn & độ sáng
 // ============================
-String current_state = "off";     // "on" hoặc "off"
-String current_mode  = "manual";  // "manual" hoặc "auto"
-int    current_brightness = 100;  // 0 - 255 (PWM)
+String current_state = "off";    // "on" hoặc "off"
+String current_mode  = "manual"; // "manual" hoặc "auto"
+int    current_brightness = 100; // 0 - 100 (%) (sau đó map ra 0 - 255 cho PWM)
 
 // Thời gian tự động tắt khi hết chuyển động
 unsigned long lastMotionTime = 0;
@@ -84,12 +88,26 @@ void setLightState(String newState, int brightness = -1, String source = "") {
         Serial.println("💡 LED brightness: " + String(current_brightness) + " (" + source + ")");
     }
 
-    // PWM điều khiển đèn
+    // Tính giá trị PWM
+    int pwmValue;
     if (current_state == "on") {
-        analogWrite(LED_PIN, map(current_brightness, 0, 100, 0, 255));
+        // Map độ sáng từ 0-100% sang 0-255 cho PWM
+        pwmValue = map(current_brightness, 0, 100, 0, 255); 
     } else {
-        analogWrite(LED_PIN, 0);
+        pwmValue = 0;
     }
+    
+    // Áp dụng cho chân 12 (DÙNG MOSFET)
+    // Giá trị PWM cao (255) là TẮT (nếu dùng Mosfet p-channel) hoặc SÁNG (nếu dùng Mosfet n-channel)
+    // Giả sử dùng Mosfet n-channel: HIGH/255 = SÁNG, LOW/0 = TẮT
+    analogWrite(MOSFET_LED_PIN, pwmValue); 
+
+    // Áp dụng cho chân 19 (TRỰC TIẾP/KHÔNG MOSFET)
+    // Vì không qua Mosfet, chân này điều khiển LED/tải trực tiếp: HIGH/255 = SÁNG, LOW/0 = TẮT
+    analogWrite(DIRECT_LED_PIN, pwmValue); 
+
+    Serial.println("⚙️ PWM set to: " + String(pwmValue) + " on pins 12 (MOSFET) and 19 (DIRECT).");
+
 
     if (updated) publishState();
 }
@@ -125,7 +143,7 @@ void callback(char* topic, byte* payload, unsigned int length) {
         if (state_cmd == "on" || state_cmd == "off") {
             setLightState(state_cmd, brightness_cmd, "MQTT_MANUAL");
         } else if (brightness_cmd >= 0) {
-            setLightState("on", brightness_cmd, "MQTT_BRIGHTNESS");
+            setLightState("on", brightness_cmd, "MQTT_BRIGHTNESS"); 
         }
     } else { // AUTO
         // Cho phép override tắt đèn
@@ -134,7 +152,7 @@ void callback(char* topic, byte* payload, unsigned int length) {
         }
         // brightness vẫn update nếu có
         if (brightness_cmd >= 0) {
-            setLightState("on", brightness_cmd, "MQTT_BRIGHTNESS");
+            setLightState(current_state, brightness_cmd, "MQTT_BRIGHTNESS");
         }
     }
 
@@ -164,8 +182,8 @@ void reconnectMQTT() {
         String clientId = "ESP32_" + String(random(0xffff), HEX);
         if (client.connect(clientId.c_str())) {
             Serial.println("CONNECTED!");
-            client.subscribe(topic_cmd.c_str());
-            publishState();
+            client.subscribe(topic_cmd.c_str()); 
+            publishState(); 
         } else {
             Serial.print("FAILED, rc=");
             Serial.print(client.state());
@@ -195,8 +213,14 @@ void publishHeartbeat() {
 // ============================
 void setup() {
     Serial.begin(115200);
-    pinMode(LED_PIN, OUTPUT);
-    analogWrite(LED_PIN, 0);
+    
+    // Thiết lập các chân LED
+    pinMode(MOSFET_LED_PIN, OUTPUT);
+    analogWrite(MOSFET_LED_PIN, 0); // Tắt đèn ban đầu
+
+    pinMode(DIRECT_LED_PIN, OUTPUT);
+    analogWrite(DIRECT_LED_PIN, 0); // Tắt đèn ban đầu
+
     pinMode(PIR_INPUT_PIN, INPUT);
 
     setupWiFi();
@@ -208,15 +232,16 @@ void setup() {
 // Loop
 // ============================
 void loop() {
+    // Đảm bảo kết nối
     if (WiFi.status() != WL_CONNECTED) setupWiFi();
     if (!client.connected()) reconnectMQTT();
     client.loop();
 
-    // Chế độ AUTO
+    // Xử lý chế độ AUTO
     if (current_mode == "auto") {
         int pirState = digitalRead(PIR_INPUT_PIN);
         if (pirState == HIGH) {
-            lastMotionTime = millis();
+            lastMotionTime = millis(); 
             setLightState("on", current_brightness, "PIR_DETECT");
         } else if (current_state == "on" && millis() - lastMotionTime > AUTO_OFF_DELAY_MS) {
             setLightState("off", -1, "PIR_TIMEOUT");
