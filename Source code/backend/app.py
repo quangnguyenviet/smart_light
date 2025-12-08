@@ -50,8 +50,7 @@ def offline_checker():
 
                     data = {
                         "device_id": device["device_name"],
-                        "state": "Offline",
-                        "mode": None,
+                        "state": "offline",
                         "brightness": None
                     }
 
