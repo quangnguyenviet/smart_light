@@ -76,6 +76,9 @@ from config.db import get_db_connection
 # Device controllers
 from controller.devices import on_message, process_device_command, get_all_devices
 
+# THÊM: Scheduler controller
+from controller.scheduler import get_schedule, save_schedule, delete_schedule, schedule_executor
+
 # User controllers (login/register/logout)
 from controller.user_controller import (
     handle_login,
@@ -154,11 +157,46 @@ def device_command():
     return jsonify(response), status
 
 
+# =========================================
+# THÊM: API — SCHEDULER (HẸN GIỜ BẬT/TẮT ĐÈN)
+# =========================================
+@app.route("/api/schedule/<device_id>", methods=["GET"])
+@require_login
+def get_device_schedule(device_id):
+    """
+    THÊM: Lấy lịch hẹn giờ của thiết bị từ database
+    """
+    schedule = get_schedule(device_id)
+    return jsonify(schedule), 200
+
+
+@app.route("/api/schedule/<device_id>", methods=["POST"])
+@require_login
+def save_device_schedule(device_id):
+    """
+    THÊM: Lưu lịch hẹn giờ cho thiết bị vào database
+    """
+    data = request.json
+    start_time = data.get("start_time")
+    end_time = data.get("end_time")
+    print("Received schedule data:", data)
+    
+    if not start_time or not end_time:
+        return jsonify({"error": "Thiếu start_time hoặc end_time"}), 400
+    
+    success = save_schedule(device_id, start_time, end_time)
+    if success:
+        return jsonify({"message": "Lịch hẹn giờ đã được lưu"}), 200
+    else:
+        return jsonify({"error": "Lỗi lưu lịch hẹn giờ"}), 500
+
 
 if __name__ == "__main__":
     db_conn = get_db_connection()
     if db_conn:
         print("DB OK")
         db_conn.close()
-    socketio.start_background_task(target=offline_checker)
+    # socketio.start_background_task(target=offline_checker)
+    # THÊM: Khởi chạy background scheduler thread
+    socketio.start_background_task(target=schedule_executor, socketio=socketio, mqtt_client=mqtt_client)
     socketio.run(app, host="0.0.0.0", port=5000, debug=True,use_reloader=False)
