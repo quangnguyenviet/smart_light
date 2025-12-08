@@ -5,7 +5,7 @@ from datetime import datetime
 DB_CONFIG = {
     "dbname": "smart_light_db",
     "user": "postgres",
-    "password": "duong2k4",
+    "password": "123",
     "host": "localhost",
     "port": "5432"
 }

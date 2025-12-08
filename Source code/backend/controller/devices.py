@@ -61,20 +61,19 @@ def update_device_state(data):
 def on_message(client, userdata, msg):
     try:
         payload = msg.payload.decode()
-        print(f"\n[MQTT RECEIVED] Topic={msg.topic}")
-        print(f"[MQTT PAYLOAD] {payload}")
-        data = json.loads(payload)
+        print(f"[MQTT] Topic={msg.topic} Payload={payload}")
 
-        # Update DB
-        print(f"[ACTION] Updating database with: {data}")
-        update_device_state(data)
+        try:
+            data = json.loads(payload)
+            update_device_state(data)
+            socketio.emit("device_state_update", data) 
+            print("🔥 EMIT TO FRONTEND:", data)
 
-        # Emit realtime cho frontend (broadcast tới tất cả clients)
-        print(f"WebSocket Emitted to all clients: {data}")
-        socketio.emit("device_state_update", data)
-        print(f"✅ MQTT message processed successfully\n")
+        except json.JSONDecodeError:
+            print("❌ Invalid JSON")
+
     except Exception as e:
-        print(f"❌ MQTT Callback Error: {e}\n")
+        print(f"❌ MQTT Callback Error: {e}")
 
 
 
@@ -131,8 +130,6 @@ def handle_brightness_command(data):
         mqtt_client.publish(topic, json.dumps(payload))
         print(f"🌟 WS -> MQTT Published: {topic} {payload}")
 
-        # **Không emit UI update ở đây nữa**
-        # UI sẽ update khi ESP32 publish trạng thái -> on_message -> emit device_state_update
     else:
         print("⚠ Invalid WS brightness payload:", data)
 
@@ -170,4 +167,3 @@ def get_all_devices():
         if conn:
             conn.close()
 
-# ...existing code...
