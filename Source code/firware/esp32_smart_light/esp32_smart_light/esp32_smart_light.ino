@@ -29,7 +29,7 @@ String topic_heartbeat = "home/" + user_id + "/" + device_id + "/heartbeat";
 
 // cau hinh hearbeat
 unsigned long lastHeartbeatTime = 0;
-const unsigned long HEARTBEAT_INTERVAL = 10000; // 10 giây
+const unsigned long HEARTBEAT_INTERVAL = 5000; // 5 giây
 
 // ============================
 // WiFi + MQTT Clients

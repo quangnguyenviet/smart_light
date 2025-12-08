@@ -16,7 +16,7 @@ from controller.devices import on_message, process_device_command
 from time import sleep
 
 
-OFFLINE_THRESHOLD = 5  # giây
+OFFLINE_THRESHOLD = 6  # giây
 
 from psycopg2.extras import RealDictCursor
 
@@ -50,9 +50,8 @@ def offline_checker():
 
                     data = {
                         "device_id": device["device_name"],
-                        "state": "Offline",
+                        "state": "offline",
                         "mode": None,
-                        "brightness": None
                     }
 
                     print("⚠️ Device offline:", device["device_name"])
@@ -84,6 +83,7 @@ socketio.init_app(app)
 # init mqtt
 mqtt_client = create_mqtt_client(on_message)
 mqtt_client.subscribe("home/+/+/state")
+mqtt_client.subscribe("home/+/+/heartbeat")
 mqtt_client.loop_start()
 
 # ==================== THÊM: HÀM HELPER KIỂM TRA LOGIN ====================

@@ -192,8 +192,8 @@
         if (!data || data.device_id !== DEVICE_ID) return;
         const mode = data.mode || currentUIMode;
         const state = data.state || currentUIState;
-        const brightness =
-          data.brightness !== undefined ? data.brightness : 100;
+        const brightness = data.brightness !== undefined ? data.brightness : 100;
+          
         updateUI(mode, state, brightness);
       });
 
@@ -249,12 +249,29 @@
         else btnOff.classList.add("ring-4", "ring-red-300");
 
         // Disable controls if not manual
+        // Disable controls nếu không phải manual HOẶC thiết bị offline
         const isManual = mode === "manual";
+        const isOnline = state !== "offline";
+
+        // Điều khiển cho ON/OFF + brightness
+        const allowLightControl = isManual && isOnline;
+
+        // Điều khiển cho nút chuyển mode
+        const allowModeSwitch = isOnline; // chỉ cần thiết bị online là được
+
+        // Danh sách nút liên quan đến điều khiển đèn
         [brightnessSlider, btnOn, btnOff].forEach((el) => {
-          el.disabled = !isManual;
-          if (!isManual) el.classList.add("opacity-50", "cursor-not-allowed");
+          el.disabled = !allowLightControl;
+          if (!allowLightControl) el.classList.add("opacity-50", "cursor-not-allowed");
           else el.classList.remove("opacity-50", "cursor-not-allowed");
         });
+
+        // Nút chuyển mode xử lý riêng
+        btnMode.disabled = !allowModeSwitch;
+        if (!allowModeSwitch) btnMode.classList.add("opacity-50", "cursor-not-allowed");
+        else btnMode.classList.remove("opacity-50", "cursor-not-allowed");
+
+
       }
 
       // ====================

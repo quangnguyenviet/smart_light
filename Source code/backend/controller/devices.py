@@ -62,6 +62,7 @@ def on_message(client, userdata, msg):
         print(f"[MQTT] Topic={msg.topic} Payload={payload}")
         data = json.loads(payload)
         topic = msg.topic
+        print("🔔 MQTT Message Received:", topic, data)
 
         # Nếu là heartbeat
         if topic.endswith("/heartbeat"):
