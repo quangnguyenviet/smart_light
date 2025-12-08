@@ -24,7 +24,7 @@ const int   MQTT_PORT   = 1883;
 // ============================
 // Chủ đề MQTT ESP32 sẽ subscribe/publish
 // ============================
-String user_id   = "light1";
+String user_id   = "user1";
 String device_id = "light1";
 String topic_cmd   = "home/" + user_id + "/" + device_id + "/cmd";
 String topic_state = "home/" + user_id + "/" + device_id + "/state";
@@ -33,7 +33,7 @@ String topic_heartbeat = "home/" + user_id + "/" + device_id + "/heartbeat";
 
 // cau hinh hearbeat
 unsigned long lastHeartbeatTime = 0;
-const unsigned long HEARTBEAT_INTERVAL = 10000; // 10 giây
+const unsigned long HEARTBEAT_INTERVAL = 5000; // 5 giây
 
 // ============================
 // WiFi + MQTT Clients
@@ -248,7 +248,7 @@ void loop() {
         }
     }
 
-    // Gửi heartbeat mỗi 10 giây
+    // Gửi heartbeat mỗi 5 giây
     if (millis() - lastHeartbeatTime >= HEARTBEAT_INTERVAL) {
         publishHeartbeat();
         lastHeartbeatTime = millis();
