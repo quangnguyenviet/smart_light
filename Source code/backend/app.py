@@ -100,7 +100,7 @@ socketio.init_app(app, cors_allowed_origins="*")
 mqtt_client = create_mqtt_client(on_message)
 mqtt_client.subscribe("home/+/+/state")
 mqtt_client.loop_start()
-
+mqtt_client.subscribe("home/+/heartbeat")
 # =========================================
 # USER ROUTES
 # =========================================

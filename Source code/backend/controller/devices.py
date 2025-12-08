@@ -72,8 +72,8 @@ def on_message(client, userdata, msg):
             conn = get_db_connection()
             cursor = conn.cursor()
             cursor.execute(
-                "UPDATE devices SET last_online=%s WHERE device_name=%s",
-                (now, device_id)
+                "UPDATE devices SET last_online=%s WHERE 1=1",
+                (now,)
             )
             conn.commit()
             conn.close()
