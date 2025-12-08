@@ -50,8 +50,7 @@ def offline_checker():
 
                     data = {
                         "device_id": device["device_name"],
-                        "state": "Offline",
-                        "mode": None,
+                        "state": "offline",
                         "brightness": None
                     }
 
@@ -64,7 +63,7 @@ def offline_checker():
         except Exception as e:
             print("🔥 ERROR in offline_checker:", str(e))
 
-        time.sleep(30)
+        time.sleep(5)
 
 
 # --- Bắt đầu thread khi server khởi chạy ---

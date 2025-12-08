@@ -252,13 +252,27 @@
         if (state === "on") btnOn.classList.add("ring-4", "ring-green-300");
         else btnOff.classList.add("ring-4", "ring-red-300");
 
-        // disable in auto mode
         const isManual = mode === "manual";
+        const isOnline = state !== "offline";
+
+        // Điều khiển cho ON/OFF + brightness
+        const allowLightControl = isManual && isOnline;
+
+        // Điều khiển cho nút chuyển mode
+        const allowModeSwitch = isOnline; // chỉ cần thiết bị online là được
+
+        // Danh sách nút liên quan đến điều khiển đèn
         [brightnessSlider, btnOn, btnOff].forEach((el) => {
-          el.disabled = !isManual;
-          if (!isManual) el.classList.add("opacity-50", "cursor-not-allowed");
+          el.disabled = !allowLightControl;
+          if (!allowLightControl) el.classList.add("opacity-50", "cursor-not-allowed");
           else el.classList.remove("opacity-50", "cursor-not-allowed");
         });
+
+        // Nút chuyển mode xử lý riêng
+        btnMode.disabled = !allowModeSwitch;
+        if (!allowModeSwitch) btnMode.classList.add("opacity-50", "cursor-not-allowed");
+        else btnMode.classList.remove("opacity-50", "cursor-not-allowed");
+
       }
 
       // ================================
